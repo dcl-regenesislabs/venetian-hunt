@@ -1,25 +1,22 @@
-import {} from '@dcl/sdk/math'
-import { engine, GltfContainer, Transform } from '@dcl/sdk/ecs'
-import { setupUi } from './ui'
-import { setupAvatarHiding } from './avatarHiding'
-import { PROP_SPAWN_POINTS } from './propSpawnPoints'
+import { isServer } from '@dcl/sdk/network'
+// engine.defineComponent and registerMessages must run synchronously before the engine seals
+import './shared/schemas'
+import './shared/messages'
 
-export function main() {
+export async function main() {
+  if (isServer()) {
+    const { initServer } = await import('./server/server')
+    initServer()
+    return
+  }
+
+  const { initClient } = await import('./client/setup')
+  const { setupUi } = await import('./ui')
+  const { setupAvatarHiding } = await import('./avatarHiding')
+  const { spawnProps } = await import('./props')
+
   setupAvatarHiding()
+  initClient()
   setupUi()
   spawnProps()
-}
-
-function spawnProps() {
-  for (const [src, transforms] of Object.entries(PROP_SPAWN_POINTS)) {
-    for (const t of transforms) {
-      const entity = engine.addEntity()
-      GltfContainer.create(entity, { src })
-      Transform.create(entity, {
-        position: t.position,
-        rotation: t.rotation,
-        scale: t.scale
-      })
-    }
-  }
 }

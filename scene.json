@@ -78,6 +78,11 @@
     "portableExperiences": "enabled",
     "nearbyVoiceChat": "enabled"
   },
+  "authoritativeMultiplayer": true,
+  "worldConfiguration": {
+    "name": "susspaghetti.dcl.eth"
+  },
+  "logsPermissions": ["0xYOUR_WALLET_ADDRESS"],
   "creator": "",
   "skyboxConfig": {},
   "source": {

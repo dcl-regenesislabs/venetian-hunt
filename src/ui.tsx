@@ -5,6 +5,7 @@ import {
   GltfContainer, ColliderLayer, Transform,
   Entity
 } from '@dcl/sdk/ecs'
+import { room } from './shared/messages'
 
 
 import { Color4 } from '@dcl/sdk/math'
@@ -22,9 +23,23 @@ const PROPS = [
 
 let selectedIndex = 0
 let propEntity: Entity | undefined
+let playerRole: 'hider' | 'shooter' = 'hider'
+
+export function getCurrentPropSrc(): string {
+  return PROPS[selectedIndex].src
+}
+
+export function setPlayerRole(role: 'hider' | 'shooter') {
+  playerRole = role
+  if (role === 'shooter' && propEntity !== undefined) {
+    engine.removeEntity(propEntity)
+    propEntity = undefined
+  }
+}
 
 function attachProp(src: string) {
   if (propEntity !== undefined) engine.removeEntity(propEntity)
+  room.send('selectProp', { propSrc: src })
 
   propEntity = engine.addEntity()
   GltfContainer.create(propEntity, {
@@ -43,6 +58,7 @@ export function setupUi() {
   attachProp(PROPS[selectedIndex].src)
 
   engine.addSystem(() => {
+    if (playerRole !== 'hider') return
     if (inputSystem.isTriggered(InputAction.IA_PRIMARY, PointerEventType.PET_DOWN)) {
       selectedIndex = (selectedIndex - 1 + PROPS.length) % PROPS.length
       attachProp(PROPS[selectedIndex].src)
@@ -61,6 +77,8 @@ const BG_KEY: Color4   = { r: 1, g: 1, b: 1, a: 0.15 }
 const WHITE: Color4    = { r: 1, g: 1, b: 1, a: 1    }
 
 export const uiMenu = () => {
+  if (playerRole !== 'hider') return <UiEntity uiTransform={{ width: 0, height: 0 }} />
+
   const prop = PROPS[selectedIndex]
 
   return (
