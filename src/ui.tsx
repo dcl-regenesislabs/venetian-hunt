@@ -3,7 +3,6 @@ import {
   engine,
   inputSystem, InputAction, PointerEventType,
   GltfContainer, ColliderLayer, Transform,
-  AvatarModifierArea, AvatarModifierType,
   Entity
 } from '@dcl/sdk/ecs'
 
@@ -24,19 +23,6 @@ const PROPS = [
 let selectedIndex = 0
 let propEntity: Entity | undefined
 
-function setupModifierArea() {
-  const modifierEntity = engine.addEntity()
-  AvatarModifierArea.create(modifierEntity, {
-    area: { x: 2, y: 3, z: 2 },
-    modifiers: [AvatarModifierType.AMT_HIDE_AVATARS, AvatarModifierType.AMT_DISABLE_PASSPORTS],
-    excludeIds: []
-  })
-  Transform.create(modifierEntity, {
-    parent: engine.PlayerEntity,
-    position: { x: 0, y: 1, z: 0 }
-  })
-}
-
 function attachProp(src: string) {
   if (propEntity !== undefined) engine.removeEntity(propEntity)
 
@@ -54,7 +40,6 @@ function attachProp(src: string) {
 }
 
 export function setupUi() {
-  setupModifierArea()
   attachProp(PROPS[selectedIndex].src)
 
   engine.addSystem(() => {

@@ -1,9 +1,11 @@
 import {} from '@dcl/sdk/math'
 import { engine, GltfContainer, Transform } from '@dcl/sdk/ecs'
 import { setupUi } from './ui'
+import { setupAvatarHiding } from './avatarHiding'
 import { PROP_SPAWN_POINTS } from './propSpawnPoints'
 
 export function main() {
+  setupAvatarHiding()
   setupUi()
   spawnProps()
 }
