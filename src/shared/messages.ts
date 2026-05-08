@@ -3,8 +3,12 @@ import { registerMessages } from '@dcl/sdk/network'
 
 export const room = registerMessages({
   // Client → Server
-  selectProp:   Schemas.Map({ propSrc: Schemas.String }),
-  playerReady:  Schemas.Map({}),
+  selectProp:        Schemas.Map({ propSrc: Schemas.String }),
+  undisguise:        Schemas.Map({}),
+  playerReady:       Schemas.Map({}),
+  debugSwitchRole:   Schemas.Map({}),
+  shoot:             Schemas.Map({ targetAddress: Schemas.String }),
+  playerEliminated:  Schemas.Map({ address: Schemas.String }),
 
   // Server → Client
   rolesAssigned: Schemas.Map({

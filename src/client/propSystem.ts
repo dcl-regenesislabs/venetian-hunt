@@ -43,11 +43,14 @@ export function onPlayerUndisguised(address: string) {
   propsByAddress.delete(address.toLowerCase())
 }
 
-// System: move each prop entity to match its player's avatar position each frame
+// DCL's physics capsule keeps the player root slightly above the visual floor.
+// Subtract this offset so world-space props sit on the ground.
+const PHYSICS_FLOOR_OFFSET = 0.1
+
 engine.addSystem(() => {
   for (const [address, entity] of propsByAddress) {
     const pos = getPlayerWorldPosition(address)
     if (!pos) continue
-    Transform.getMutable(entity).position = pos
+    Transform.getMutable(entity).position = { x: pos.x, y: pos.y - PHYSICS_FLOOR_OFFSET, z: pos.z }
   }
 })

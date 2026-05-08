@@ -112,6 +112,66 @@ export function initServer() {
     console.log(`[Server] ${address} disguised as ${data.propSrc}`)
   })
 
+  room.onMessage('shoot', (data, context) => {
+    if (!context) return
+    const shooterAddr = context.from.toLowerCase()
+    const targetAddr  = data.targetAddress.toLowerCase()
+
+    const roles = RolesComponent.get(rolesEntity)
+    if (!roles.shooters.includes(shooterAddr)) return
+    if (!roles.hiders.includes(targetAddr))    return
+
+    console.log(`[Server] ${shooterAddr} eliminated ${targetAddr}`)
+
+    // Remove disguise
+    const state = DisguisedPlayersComponent.getMutable(disguisedEntity)
+    state.disguises = state.disguises.filter(d => d.address !== targetAddr)
+    room.send('playerUndisguised', { address: targetAddr })
+
+    // Remove from hiders
+    const newHiders = roles.hiders.filter(h => h !== targetAddr)
+    RolesComponent.createOrReplace(rolesEntity, { shooters: roles.shooters, hiders: newHiders })
+    room.send('playerEliminated', { address: targetAddr })
+
+    if (newHiders.length === 0) {
+      GameStateComponent.createOrReplace(gameEntity, { phase: 'results' })
+      room.send('gamePhaseChanged', { phase: 'results' })
+      console.log('[Server] Shooters win!')
+    }
+  })
+
+  room.onMessage('debugSwitchRole', (_, context) => {
+    if (!context) return
+    const address = context.from.toLowerCase()
+    const roles = RolesComponent.get(rolesEntity)
+    let shooters = [...roles.shooters]
+    let hiders   = [...roles.hiders]
+
+    if (shooters.includes(address)) {
+      shooters = shooters.filter(a => a !== address)
+      hiders   = [...hiders, address]
+    } else if (hiders.includes(address)) {
+      hiders   = hiders.filter(a => a !== address)
+      shooters = [...shooters, address]
+    }
+
+    RolesComponent.createOrReplace(rolesEntity, { shooters, hiders })
+    room.send('rolesAssigned', { shooters, hiders })
+    console.log(`[Server] ${address} switched role — shooters: ${shooters}`)
+  })
+
+  room.onMessage('undisguise', (_, context) => {
+    if (!context) return
+    const address = context.from.toLowerCase()
+    const state = DisguisedPlayersComponent.getMutable(disguisedEntity)
+    const before = state.disguises.length
+    state.disguises = state.disguises.filter(d => d.address !== address)
+    if (state.disguises.length !== before) {
+      room.send('playerUndisguised', { address })
+      console.log(`[Server] ${address} went back to avatar`)
+    }
+  })
+
   room.onMessage('playerReady', (_, context) => {
     if (!context) return
     console.log(`[Server] playerReady from ${context.from}`)
