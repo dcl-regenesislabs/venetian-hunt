@@ -72,9 +72,20 @@ export function setupUi() {
   ReactEcsRenderer.setUiRenderer(uiMenu, { virtualWidth: 1920, virtualHeight: 1080 })
 }
 
-const BG_DARK: Color4  = { r: 0, g: 0, b: 0, a: 0.72 }
-const BG_KEY: Color4   = { r: 1, g: 1, b: 1, a: 0.15 }
-const WHITE: Color4    = { r: 1, g: 1, b: 1, a: 1    }
+const WHITE: Color4 = { r: 1, g: 1, b: 1, a: 1 }
+const BLACK: Color4 = { r: 0, g: 0, b: 0, a: 1 }
+
+function OutlinedLabel(props: { value: string; width: number; height: number; fontSize: number; marginTop?: number }) {
+  const { value, width, height, fontSize, marginTop } = props
+  return (
+    <UiEntity uiTransform={{ width, height, margin: { top: marginTop ?? 0 } }}>
+      <Label value={value} uiTransform={{ width, height, positionType: 'absolute', position: { top: 2, left: 2 } }}
+        textAlign="middle-center" fontSize={fontSize} color={BLACK} />
+      <Label value={value} uiTransform={{ width, height, positionType: 'absolute', position: { top: 0, left: 0 } }}
+        textAlign="middle-center" fontSize={fontSize} color={WHITE} />
+    </UiEntity>
+  )
+}
 
 export const uiMenu = () => {
   if (playerRole !== 'hider') return <UiEntity uiTransform={{ width: 0, height: 0 }} />
@@ -94,65 +105,26 @@ export const uiMenu = () => {
       <UiEntity
         uiTransform={{
           width: 440,
-          flexDirection: 'column',
+          height: 140,
+          flexDirection: 'row',
           alignItems: 'center',
+          justifyContent: 'space-between',
+          padding: { left: 16, right: 16 },
           margin: { bottom: 64 },
         }}
-        uiBackground={{ color: BG_DARK }}
       >
-        <UiEntity
-          uiTransform={{
-            width: 440,
-            height: 140,
-            flexDirection: 'row',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            padding: { left: 16, right: 16 },
-          }}
-        >
-          {/* E key — prev */}
-          <UiEntity
-            uiTransform={{ width: 72, height: 72, alignItems: 'center', justifyContent: 'center' }}
-            uiBackground={{ color: BG_KEY }}
-          >
-            <Label
-              value="◄  E"
-              uiTransform={{ width: '100%', height: '100%' }}
-              textAlign="middle-center"
-              fontSize={22}
-              color={WHITE}
-            />
-          </UiEntity>
+        <OutlinedLabel value="◄  E" width={72} height={72} fontSize={26} />
 
-          {/* Thumbnail + name */}
-          <UiEntity uiTransform={{ flexDirection: 'column', alignItems: 'center' }}>
-            <UiEntity
-              uiTransform={{ width: 120, height: 120 }}
-              uiBackground={{ texture: { src: prop.thumbnail }, textureMode: 'stretch' }}
-            />
-            <Label
-              value={prop.name}
-              uiTransform={{ width: 200, height: 32, margin: { top: 6 } }}
-              textAlign="middle-center"
-              fontSize={20}
-              color={WHITE}
-            />
-          </UiEntity>
-
-          {/* F key — next */}
+        {/* Thumbnail + name */}
+        <UiEntity uiTransform={{ flexDirection: 'column', alignItems: 'center' }}>
           <UiEntity
-            uiTransform={{ width: 72, height: 72, alignItems: 'center', justifyContent: 'center' }}
-            uiBackground={{ color: BG_KEY }}
-          >
-            <Label
-              value="F  ►"
-              uiTransform={{ width: '100%', height: '100%' }}
-              textAlign="middle-center"
-              fontSize={22}
-              color={WHITE}
-            />
-          </UiEntity>
+            uiTransform={{ width: 120, height: 120 }}
+            uiBackground={{ texture: { src: prop.thumbnail }, textureMode: 'stretch' }}
+          />
+          <OutlinedLabel value={prop.name.toUpperCase()} width={200} height={32} fontSize={20} marginTop={6} />
         </UiEntity>
+
+        <OutlinedLabel value="F  ►" width={72} height={72} fontSize={26} />
       </UiEntity>
     </UiEntity>
   )
