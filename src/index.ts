@@ -1,12 +1,23 @@
 import {} from '@dcl/sdk/math'
-import { engine } from '@dcl/sdk/ecs'
+import { engine, GltfContainer, Transform } from '@dcl/sdk/ecs'
 import { setupUi } from './ui'
-
+import { PROP_SPAWN_POINTS } from './propSpawnPoints'
 
 export function main() {
-    // uncomment the line below to initialize UI from ui.tsx
-    //setupUi()
-
-    // your scene code here
+  setupUi()
+  spawnProps()
 }
 
+function spawnProps() {
+  for (const [src, transforms] of Object.entries(PROP_SPAWN_POINTS)) {
+    for (const t of transforms) {
+      const entity = engine.addEntity()
+      GltfContainer.create(entity, { src })
+      Transform.create(entity, {
+        position: t.position,
+        rotation: t.rotation,
+        scale: t.scale
+      })
+    }
+  }
+}

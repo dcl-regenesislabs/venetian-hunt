@@ -97,16 +97,16 @@
               "y": 4,
               "z": 47.75
             },
+            "scale": {
+              "x": 1.2000000476837158,
+              "y": 1.2000000476837158,
+              "z": 1.2000000476837158
+            },
             "rotation": {
               "x": 0,
               "y": 0,
               "z": 0,
               "w": 1
-            },
-            "scale": {
-              "x": 1.2000000476837158,
-              "y": 1.2000000476837158,
-              "z": 1.2000000476837158
             },
             "parent": 0
           }
@@ -118,16 +118,16 @@
               "y": 4.5,
               "z": 60
             },
+            "scale": {
+              "x": 1,
+              "y": 1,
+              "z": 1
+            },
             "rotation": {
               "x": 0,
               "y": 0,
               "z": 0,
               "w": 1
-            },
-            "scale": {
-              "x": 1,
-              "y": 1,
-              "z": 1
             },
             "parent": 0
           }
@@ -139,16 +139,16 @@
               "y": 4.5,
               "z": 58
             },
+            "scale": {
+              "x": 1,
+              "y": 1,
+              "z": 1
+            },
             "rotation": {
               "x": 0,
               "y": 0,
               "z": 0,
               "w": 1
-            },
-            "scale": {
-              "x": 1,
-              "y": 1,
-              "z": 1
             },
             "parent": 0
           }
@@ -156,83 +156,20 @@
         "518": {
           "json": {
             "position": {
-              "x": 46.5,
+              "x": 47.09999084472656,
               "y": 4.5,
-              "z": 55.5
+              "z": 56.399986267089844
+            },
+            "scale": {
+              "x": 1,
+              "y": 1,
+              "z": 1
             },
             "rotation": {
               "x": 0,
               "y": 0,
               "z": 0,
               "w": 1
-            },
-            "scale": {
-              "x": 1,
-              "y": 1,
-              "z": 1
-            },
-            "parent": 0
-          }
-        },
-        "519": {
-          "json": {
-            "position": {
-              "x": 36.75,
-              "y": 4.050000190734863,
-              "z": 51.5
-            },
-            "rotation": {
-              "x": 0,
-              "y": 0.7071067690849304,
-              "z": 0,
-              "w": 0.7071067690849304
-            },
-            "scale": {
-              "x": 1,
-              "y": 1,
-              "z": 1
-            },
-            "parent": 0
-          }
-        },
-        "521": {
-          "json": {
-            "position": {
-              "x": 53.29998779296875,
-              "y": 4.500001907348633,
-              "z": 64.69998931884766
-            },
-            "rotation": {
-              "x": 0,
-              "y": 0,
-              "z": 0,
-              "w": 1
-            },
-            "scale": {
-              "x": 1,
-              "y": 1,
-              "z": 1
-            },
-            "parent": 0
-          }
-        },
-        "522": {
-          "json": {
-            "position": {
-              "x": 61.69996643066406,
-              "y": 4.500001907348633,
-              "z": 55.09999465942383
-            },
-            "rotation": {
-              "x": 0,
-              "y": 0,
-              "z": 0,
-              "w": 1
-            },
-            "scale": {
-              "x": 1,
-              "y": 1,
-              "z": 1
             },
             "parent": 0
           }
@@ -244,142 +181,37 @@
               "y": 4.5,
               "z": 53.10001754760742
             },
+            "scale": {
+              "x": 1,
+              "y": 1,
+              "z": 1
+            },
             "rotation": {
               "x": 0,
               "y": 0,
               "z": 0,
               "w": 1
-            },
-            "scale": {
-              "x": 1,
-              "y": 1,
-              "z": 1
             },
             "parent": 0
           }
         },
-        "524": {
+        "531": {
           "json": {
             "position": {
-              "x": 32,
-              "y": 4.099999904632568,
-              "z": 37.90000534057617
-            },
-            "rotation": {
-              "x": 0,
-              "y": 0,
-              "z": 0,
-              "w": 1
+              "x": 49.999969482421875,
+              "y": 4.5,
+              "z": 45.60000228881836
             },
             "scale": {
               "x": 1,
               "y": 1,
               "z": 1
             },
-            "parent": 0
-          }
-        },
-        "525": {
-          "json": {
-            "position": {
-              "x": 35.59999465942383,
-              "y": 4.099998474121094,
-              "z": 36.5999870300293
-            },
             "rotation": {
               "x": 0,
               "y": 0,
               "z": 0,
               "w": 1
-            },
-            "scale": {
-              "x": 1,
-              "y": 1,
-              "z": 1
-            },
-            "parent": 0
-          }
-        },
-        "526": {
-          "json": {
-            "position": {
-              "x": 39.600013732910156,
-              "y": 4.099999904632568,
-              "z": 65.39998626708984
-            },
-            "rotation": {
-              "x": 0,
-              "y": 0,
-              "z": 0,
-              "w": 1
-            },
-            "scale": {
-              "x": 1,
-              "y": 1,
-              "z": 1
-            },
-            "parent": 0
-          }
-        },
-        "527": {
-          "json": {
-            "position": {
-              "x": 44.800010681152344,
-              "y": 4.099999904632568,
-              "z": 67.699951171875
-            },
-            "rotation": {
-              "x": 0,
-              "y": 0,
-              "z": 0,
-              "w": 1
-            },
-            "scale": {
-              "x": 1,
-              "y": 1,
-              "z": 1
-            },
-            "parent": 0
-          }
-        },
-        "529": {
-          "json": {
-            "position": {
-              "x": -0.03449999913573265,
-              "y": 0.09290000051259995,
-              "z": 0.35589998960494995
-            },
-            "rotation": {
-              "x": 0,
-              "y": 0,
-              "z": 0,
-              "w": 1
-            },
-            "scale": {
-              "x": 1,
-              "y": 1,
-              "z": 1
-            },
-            "parent": 530
-          }
-        },
-        "530": {
-          "json": {
-            "position": {
-              "x": 44.399993896484375,
-              "y": 4.19999885559082,
-              "z": 65.70001220703125
-            },
-            "rotation": {
-              "x": 0,
-              "y": 0,
-              "z": 0,
-              "w": 1
-            },
-            "scale": {
-              "x": 1,
-              "y": 1,
-              "z": 1
             },
             "parent": 0
           }
@@ -930,12 +762,17 @@
             "parent": 540
           }
         },
-        "566": {
+        "593": {
           "json": {
             "position": {
-              "x": 42.75,
-              "y": 4.000000953674316,
-              "z": 62
+              "x": 23.800003051757812,
+              "y": 4.500000476837158,
+              "z": 50.79997634887695
+            },
+            "scale": {
+              "x": 0.800000011920929,
+              "y": 0.800000011920929,
+              "z": 0.800000011920929
             },
             "rotation": {
               "x": 0,
@@ -943,37 +780,7 @@
               "z": 0,
               "w": 1
             },
-            "scale": {
-              "x": 1,
-              "y": 1,
-              "z": 1
-            },
             "parent": 0
-          }
-        }
-      }
-    },
-    {
-      "name": "core-schema::Network-Entity",
-      "jsonSchema": {
-        "type": "object",
-        "properties": {
-          "networkId": {
-            "type": "integer",
-            "serializationType": "int64"
-          },
-          "entityId": {
-            "type": "integer",
-            "serializationType": "entity"
-          }
-        },
-        "serializationType": "map"
-      },
-      "data": {
-        "529": {
-          "json": {
-            "networkId": 0,
-            "entityId": 8002
           }
         }
       }
@@ -992,62 +799,6 @@
             "src": "assets/scene/Models/venice_cityscene_main_without_props_scaled_001.glb",
             "visibleMeshesCollisionMask": 2,
             "invisibleMeshesCollisionMask": 2
-          }
-        },
-        "519": {
-          "json": {
-            "src": "assets/asset-packs/blue_bicycle/Bicycle_02/Bicycle_02.glb",
-            "visibleMeshesCollisionMask": 0,
-            "invisibleMeshesCollisionMask": 3
-          }
-        },
-        "521": {
-          "json": {
-            "src": "assets/asset-packs/traditional_lamp_post/LampPost_02/LampPost_02.glb",
-            "visibleMeshesCollisionMask": 0,
-            "invisibleMeshesCollisionMask": 3
-          }
-        },
-        "522": {
-          "json": {
-            "src": "assets/asset-packs/traditional_lamp_post/LampPost_02/LampPost_02.glb",
-            "visibleMeshesCollisionMask": 0,
-            "invisibleMeshesCollisionMask": 3
-          }
-        },
-        "524": {
-          "json": {
-            "src": "assets/asset-packs/clay_pot/Pot_01/Pot_01.glb",
-            "visibleMeshesCollisionMask": 0,
-            "invisibleMeshesCollisionMask": 3
-          }
-        },
-        "525": {
-          "json": {
-            "src": "assets/asset-packs/bird_fountain/BirdFountain_01/BirdFountain_01.glb",
-            "visibleMeshesCollisionMask": 0,
-            "invisibleMeshesCollisionMask": 3
-          }
-        },
-        "526": {
-          "json": {
-            "src": "assets/asset-packs/umbrella_table/TableBar_01/TableBar_01.glb",
-            "visibleMeshesCollisionMask": 0,
-            "invisibleMeshesCollisionMask": 3
-          }
-        },
-        "527": {
-          "json": {
-            "src": "assets/asset-packs/umbrella_table/TableBar_01/TableBar_01.glb",
-            "visibleMeshesCollisionMask": 0,
-            "invisibleMeshesCollisionMask": 3
-          }
-        },
-        "530": {
-          "json": {
-            "src": "assets/asset-packs/outdoor_chair/Chair_07.glb",
-            "visibleMeshesCollisionMask": 0,
-            "invisibleMeshesCollisionMask": 3
           }
         },
         "541": {
@@ -1224,13 +975,6 @@
             "visibleMeshesCollisionMask": 1,
             "invisibleMeshesCollisionMask": 2
           }
-        },
-        "566": {
-          "json": {
-            "src": "assets/asset-packs/ornamental_fountain/Fountain_02/Fountain_02.glb",
-            "visibleMeshesCollisionMask": 0,
-            "invisibleMeshesCollisionMask": 3
-          }
         }
       }
     },
@@ -1253,6 +997,12 @@
           "json": {}
         },
         "523": {
+          "json": {}
+        },
+        "531": {
+          "json": {}
+        },
+        "593": {
           "json": {}
         }
       }
@@ -1313,6 +1063,27 @@
               }
             }
           }
+        },
+        "531": {
+          "json": {
+            "collisionMask": 3,
+            "mesh": {
+              "$case": "cylinder",
+              "cylinder": {
+                "radiusTop": 0.5,
+                "radiusBottom": 0.5
+              }
+            }
+          }
+        },
+        "593": {
+          "json": {
+            "collisionMask": 3,
+            "mesh": {
+              "$case": "box",
+              "box": {}
+            }
+          }
         }
       }
     },
@@ -1368,6 +1139,27 @@
               }
             }
           }
+        },
+        "531": {
+          "json": {
+            "mesh": {
+              "$case": "cylinder",
+              "cylinder": {
+                "radiusTop": 0.5,
+                "radiusBottom": 0.5
+              }
+            }
+          }
+        },
+        "593": {
+          "json": {
+            "mesh": {
+              "$case": "box",
+              "box": {
+                "uvs": []
+              }
+            }
+          }
         }
       }
     },
@@ -1404,54 +1196,14 @@
             "value": "Cylinder_5"
           }
         },
-        "519": {
-          "json": {
-            "value": "Blue Bicycle"
-          }
-        },
-        "521": {
-          "json": {
-            "value": "Traditional Lamp Post"
-          }
-        },
-        "522": {
-          "json": {
-            "value": "Traditional Lamp Post_2"
-          }
-        },
         "523": {
           "json": {
             "value": "Cylinder_6"
           }
         },
-        "524": {
+        "531": {
           "json": {
-            "value": "Clay Pot"
-          }
-        },
-        "525": {
-          "json": {
-            "value": "Bird Fountain"
-          }
-        },
-        "526": {
-          "json": {
-            "value": "Umbrella Table"
-          }
-        },
-        "527": {
-          "json": {
-            "value": "Umbrella Table_2"
-          }
-        },
-        "529": {
-          "json": {
-            "value": "Sit Spot"
-          }
-        },
-        "530": {
-          "json": {
-            "value": "Outdoor Chair"
+            "value": "Cylinder_7"
           }
         },
         "540": {
@@ -1584,9 +1336,9 @@
             "value": "Tile 25"
           }
         },
-        "566": {
+        "593": {
           "json": {
-            "value": "Ornamental Fountain"
+            "value": "Cube"
           }
         }
       }
@@ -1599,50 +1351,7 @@
         "serializationType": "protocol-buffer",
         "protocolBuffer": "PBPointerEvents"
       },
-      "data": {
-        "530": {
-          "json": {
-            "pointerEvents": [
-              {
-                "eventType": 1,
-                "eventInfo": {
-                  "button": 1,
-                  "hoverText": "Sit Here",
-                  "maxDistance": 10,
-                  "showFeedback": true,
-                  "showHighlight": true
-                }
-              }
-            ]
-          }
-        }
-      }
-    },
-    {
-      "name": "core-schema::Sync-Components",
-      "jsonSchema": {
-        "type": "object",
-        "properties": {
-          "componentIds": {
-            "type": "array",
-            "items": {
-              "type": "integer",
-              "serializationType": "int64"
-            },
-            "serializationType": "array"
-          }
-        },
-        "serializationType": "map"
-      },
-      "data": {
-        "529": {
-          "json": {
-            "componentIds": [
-              2709697014
-            ]
-          }
-        }
-      }
+      "data": {}
     },
     {
       "name": "core-schema::Tags",
@@ -1686,7 +1395,7 @@
         "serializationType": "map"
       },
       "data": {
-        "530": {
+        "0": {
           "json": {
             "gizmo": 1
           }
@@ -1740,20 +1449,37 @@
                 "open": true,
                 "children": [
                   540,
-                  566,
                   513,
                   516,
                   523,
                   517,
                   518,
+                  531,
                   519,
+                  581,
                   521,
+                  532,
+                  534,
                   522,
                   524,
+                  580,
                   525,
-                  526,
+                  537,
+                  536,
+                  535,
+                  530,
                   527,
-                  530
+                  512,
+                  514,
+                  515,
+                  520,
+                  526,
+                  588,
+                  591,
+                  590,
+                  589,
+                  592,
+                  593
                 ]
               },
               {
@@ -1895,10 +1621,6 @@
                 "children": []
               },
               {
-                "entity": 566,
-                "children": []
-              },
-              {
                 "entity": 513,
                 "children": []
               },
@@ -1939,22 +1661,90 @@
                 "children": []
               },
               {
-                "entity": 526,
-                "children": []
-              },
-              {
                 "entity": 527,
-                "children": []
-              },
-              {
-                "entity": 529,
+                "open": true,
                 "children": []
               },
               {
                 "entity": 530,
-                "children": [
-                  529
-                ]
+                "open": true,
+                "children": []
+              },
+              {
+                "entity": 531,
+                "children": []
+              },
+              {
+                "entity": 532,
+                "children": []
+              },
+              {
+                "entity": 534,
+                "children": []
+              },
+              {
+                "entity": 535,
+                "children": []
+              },
+              {
+                "entity": 536,
+                "children": []
+              },
+              {
+                "entity": 537,
+                "children": []
+              },
+              {
+                "entity": 580,
+                "children": []
+              },
+              {
+                "entity": 581,
+                "children": []
+              },
+              {
+                "entity": 588,
+                "children": []
+              },
+              {
+                "entity": 589,
+                "children": []
+              },
+              {
+                "entity": 590,
+                "children": []
+              },
+              {
+                "entity": 591,
+                "children": []
+              },
+              {
+                "entity": 592,
+                "children": []
+              },
+              {
+                "entity": 593,
+                "children": []
+              },
+              {
+                "entity": 512,
+                "children": []
+              },
+              {
+                "entity": 514,
+                "children": []
+              },
+              {
+                "entity": 515,
+                "children": []
+              },
+              {
+                "entity": 520,
+                "children": []
+              },
+              {
+                "entity": 526,
+                "children": []
               }
             ]
           }
@@ -1990,34 +1780,28 @@
         "518": {
           "json": {}
         },
-        "519": {
-          "json": {}
-        },
-        "521": {
-          "json": {}
-        },
-        "522": {
-          "json": {}
-        },
         "523": {
           "json": {}
         },
-        "524": {
+        "531": {
           "json": {}
         },
-        "525": {
+        "570": {
           "json": {}
         },
-        "526": {
+        "571": {
           "json": {}
         },
-        "527": {
+        "572": {
           "json": {}
         },
-        "530": {
+        "573": {
           "json": {}
         },
-        "566": {
+        "574": {
+          "json": {}
+        },
+        "593": {
           "json": {}
         }
       }
@@ -2693,42 +2477,7 @@
         },
         "serializationType": "map"
       },
-      "data": {
-        "529": {
-          "json": {
-            "isBasicViewEnabled": false,
-            "componentName": "Sit Spot",
-            "fields": [
-              {
-                "name": "Hover Text",
-                "type": "core::PointerEvents"
-              },
-              {
-                "name": "When Clicked",
-                "type": "asset-packs::Triggers",
-                "basicViewId": "trigger-when-clicked"
-              }
-            ],
-            "assetId": "23440c2d-cc32-4312-9e6c-15836f81a49f",
-            "helpTooltip": {
-              "text": "Configure the sit spot's hover text and actions. Players can click to sit here. The spot tracks whether it's free or taken and shows a message when occupied."
-            },
-            "version": 1
-          }
-        },
-        "530": {
-          "json": {
-            "isBasicViewEnabled": false,
-            "componentName": "Outdoor Chair",
-            "fields": [],
-            "assetId": "23440c2d-cc32-4312-9e6c-15836f81a49f",
-            "helpTooltip": {
-              "text": "Configure the door's hover text and actions. Set what happens when the door is clicked, opened, or closed. The door can be toggled open and closed."
-            },
-            "version": 1
-          }
-        }
-      }
+      "data": {}
     },
     {
       "name": "inspector::SceneMetadata-v4",
@@ -3506,126 +3255,6 @@
       }
     },
     {
-      "name": "asset-packs::Actions",
-      "jsonSchema": {
-        "type": "object",
-        "properties": {
-          "id": {
-            "type": "integer",
-            "serializationType": "int32"
-          },
-          "value": {
-            "type": "array",
-            "items": {
-              "type": "object",
-              "properties": {
-                "name": {
-                  "type": "string",
-                  "serializationType": "utf8-string"
-                },
-                "type": {
-                  "type": "string",
-                  "serializationType": "utf8-string"
-                },
-                "jsonPayload": {
-                  "type": "string",
-                  "serializationType": "utf8-string"
-                },
-                "allowedInBasicView": {
-                  "type": "boolean",
-                  "serializationType": "optional",
-                  "optionalJsonSchema": {
-                    "type": "boolean",
-                    "serializationType": "boolean"
-                  }
-                },
-                "basicViewId": {
-                  "type": "string",
-                  "serializationType": "optional",
-                  "optionalJsonSchema": {
-                    "type": "string",
-                    "serializationType": "utf8-string"
-                  }
-                },
-                "default": {
-                  "type": "boolean",
-                  "serializationType": "optional",
-                  "optionalJsonSchema": {
-                    "type": "boolean",
-                    "serializationType": "boolean"
-                  }
-                }
-              },
-              "serializationType": "map"
-            },
-            "serializationType": "array"
-          }
-        },
-        "serializationType": "map"
-      },
-      "data": {
-        "529": {
-          "json": {
-            "id": 1,
-            "value": [
-              {
-                "name": "Move here",
-                "type": "move_player_here",
-                "jsonPayload": "{}"
-              },
-              {
-                "name": "Sit anim1",
-                "type": "play_default_emote",
-                "jsonPayload": "{\"emote\":\"sittingChair1\"}"
-              },
-              {
-                "name": "Mark as taken",
-                "type": "set_state",
-                "jsonPayload": "{\"state\":\"Taken\"}"
-              },
-              {
-                "name": "Mark as free",
-                "type": "set_state",
-                "jsonPayload": "{\"state\":\"Free\"}",
-                "allowedInBasicView": true
-              },
-              {
-                "name": "Sit Here",
-                "type": "batch",
-                "jsonPayload": "{\"actions\":[\"Move here\",\"Mark as taken\",\"Random sit anim\"]}",
-                "allowedInBasicView": true
-              },
-              {
-                "name": "Sit anim2",
-                "type": "play_default_emote",
-                "jsonPayload": "{\"emote\":\"sittingChair2\"}"
-              },
-              {
-                "name": "Random sit anim",
-                "type": "random",
-                "jsonPayload": "{\"actions\":[\"Sit anim1\",\"Sit anim2\"]}"
-              },
-              {
-                "name": "Print text",
-                "type": "show_text",
-                "jsonPayload": "{\"text\":\"Seat is taken\",\"hideAfterSeconds\":2,\"font\":0,\"fontSize\":40,\"textAlign\":7}"
-              },
-              {
-                "name": "Hide text",
-                "type": "hide_text",
-                "jsonPayload": "{}"
-              },
-              {
-                "name": "Show text",
-                "type": "batch",
-                "jsonPayload": "{\"actions\":[\"Hide text\",\"Print text\"]}"
-              }
-            ]
-          }
-        }
-      }
-    },
-    {
       "name": "asset-packs::Counter",
       "jsonSchema": {
         "type": "object",
@@ -3819,128 +3448,7 @@
         },
         "serializationType": "map"
       },
-      "data": {
-        "529": {
-          "json": {
-            "value": [
-              {
-                "type": "on_player_leaves_area",
-                "conditions": [
-                  {
-                    "id": 2,
-                    "type": "when_state_is",
-                    "value": "Taken"
-                  }
-                ],
-                "operation": "and",
-                "actions": [
-                  {
-                    "id": 1,
-                    "name": "Mark as free"
-                  }
-                ]
-              }
-            ]
-          }
-        },
-        "530": {
-          "json": {
-            "value": [
-              {
-                "type": "on_input_action",
-                "conditions": [
-                  {
-                    "id": 2,
-                    "type": "when_state_is",
-                    "value": "Free"
-                  }
-                ],
-                "operation": "and",
-                "actions": [
-                  {
-                    "id": 1,
-                    "name": "Sit Here"
-                  }
-                ]
-              },
-              {
-                "type": "on_input_action",
-                "conditions": [
-                  {
-                    "id": 2,
-                    "type": "when_state_is",
-                    "value": "Taken"
-                  }
-                ],
-                "operation": "and",
-                "actions": [
-                  {
-                    "id": 1,
-                    "name": "Show text"
-                  }
-                ]
-              }
-            ]
-          }
-        }
-      }
-    },
-    {
-      "name": "asset-packs::States",
-      "jsonSchema": {
-        "type": "object",
-        "properties": {
-          "id": {
-            "type": "number",
-            "serializationType": "float32"
-          },
-          "value": {
-            "type": "array",
-            "items": {
-              "type": "string",
-              "serializationType": "utf8-string"
-            },
-            "serializationType": "array"
-          },
-          "defaultValue": {
-            "type": "string",
-            "serializationType": "optional",
-            "optionalJsonSchema": {
-              "type": "string",
-              "serializationType": "utf8-string"
-            }
-          },
-          "currentValue": {
-            "type": "string",
-            "serializationType": "optional",
-            "optionalJsonSchema": {
-              "type": "string",
-              "serializationType": "utf8-string"
-            }
-          },
-          "previousValue": {
-            "type": "string",
-            "serializationType": "optional",
-            "optionalJsonSchema": {
-              "type": "string",
-              "serializationType": "utf8-string"
-            }
-          }
-        },
-        "serializationType": "map"
-      },
-      "data": {
-        "529": {
-          "json": {
-            "id": 2,
-            "value": [
-              "Free",
-              "Taken"
-            ],
-            "defaultValue": "Free"
-          }
-        }
-      }
+      "data": {}
     }
   ]
 }
