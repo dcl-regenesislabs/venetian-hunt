@@ -7,8 +7,14 @@ export const room = registerMessages({
   undisguise:        Schemas.Map({}),
   playerReady:       Schemas.Map({}),
   debugSwitchRole:   Schemas.Map({}),
-  shoot:             Schemas.Map({ targetAddress: Schemas.String }),
-  playerEliminated:  Schemas.Map({ address: Schemas.String }),
+  shoot:    Schemas.Map({ targetAddress: Schemas.String }),
+  fireShot:  Schemas.Map({ px: Schemas.Number, py: Schemas.Number, pz: Schemas.Number, rx: Schemas.Number, ry: Schemas.Number, rz: Schemas.Number, rw: Schemas.Number }),
+  aimUpdate: Schemas.Map({ rx: Schemas.Number, ry: Schemas.Number, rz: Schemas.Number, rw: Schemas.Number }),
+  playerEliminated: Schemas.Map({ address: Schemas.String }),
+
+  // Server → Client
+  shotFired:  Schemas.Map({ shooterAddress: Schemas.String, px: Schemas.Number, py: Schemas.Number, pz: Schemas.Number, rx: Schemas.Number, ry: Schemas.Number, rz: Schemas.Number, rw: Schemas.Number }),
+  shooterAim: Schemas.Map({ shooterAddress: Schemas.String, rx: Schemas.Number, ry: Schemas.Number, rz: Schemas.Number, rw: Schemas.Number }),
 
   // Server → Client
   rolesAssigned: Schemas.Map({

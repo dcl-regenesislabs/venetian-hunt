@@ -9,25 +9,15 @@ const undisguisedIds = new Set<string>()
 
 function applyExcludeIds() {
   if (!hideArea) return
-  AvatarModifierArea.getMutable(hideArea).excludeIds = [...shooterIds, ...undisguisedIds]
+  AvatarModifierArea.getMutable(hideArea).excludeIds = [...shooterIds, ...undisguisedIds].sort()
 }
 
 export function setupAvatarHiding(): void {
-  // Area 1: hides avatars — excludeIds = shooters + undisguised hiders
   hideArea = engine.addEntity()
   Transform.create(hideArea, { position: SCENE_CENTER })
   AvatarModifierArea.create(hideArea, {
     area: AREA_SIZE,
-    modifiers: [AvatarModifierType.AMT_HIDE_AVATARS],
-    excludeIds: []
-  })
-
-  // Area 2: disables passports for everyone, no exceptions
-  const passportArea = engine.addEntity()
-  Transform.create(passportArea, { position: SCENE_CENTER })
-  AvatarModifierArea.create(passportArea, {
-    area: AREA_SIZE,
-    modifiers: [AvatarModifierType.AMT_DISABLE_PASSPORTS],
+    modifiers: [AvatarModifierType.AMT_HIDE_AVATARS, AvatarModifierType.AMT_DISABLE_PASSPORTS],
     excludeIds: []
   })
 }

@@ -37,5 +37,6 @@ export enum EntityNames {
   Tile_7 = "Tile 7",
   Tile_8 = "Tile 8",
   Tile_9 = "Tile 9",
+  hollow_cylinder_single_wall_52x26x52_glb = "hollow_cylinder_single_wall_52x26x52.glb",
   venice_cityscene_main_without_props_scaled_001_glb = "venice_cityscene_main_without_props_scaled_001.glb",
 } 

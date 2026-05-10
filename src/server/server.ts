@@ -112,15 +112,29 @@ export function initServer() {
     console.log(`[Server] ${address} disguised as ${data.propSrc}`)
   })
 
+  room.onMessage('aimUpdate', (data, context) => {
+    if (!context) return
+    const shooterAddr = context.from.toLowerCase()
+    const roles = RolesComponent.get(rolesEntity)
+    if (!roles.shooters.includes(shooterAddr)) return
+    room.send('shooterAim', { shooterAddress: shooterAddr, rx: data.rx, ry: data.ry, rz: data.rz, rw: data.rw })
+  })
+
+  room.onMessage('fireShot', (data, context) => {
+    if (!context) return
+    const shooterAddr = context.from.toLowerCase()
+    const roles = RolesComponent.get(rolesEntity)
+    if (!roles.shooters.includes(shooterAddr)) return
+    room.send('shotFired', { shooterAddress: shooterAddr, px: data.px, py: data.py, pz: data.pz, rx: data.rx, ry: data.ry, rz: data.rz, rw: data.rw })
+  })
+
   room.onMessage('shoot', (data, context) => {
     if (!context) return
     const shooterAddr = context.from.toLowerCase()
     const targetAddr  = data.targetAddress.toLowerCase()
-
     const roles = RolesComponent.get(rolesEntity)
     if (!roles.shooters.includes(shooterAddr)) return
-    if (!roles.hiders.includes(targetAddr))    return
-
+    if (!roles.hiders.includes(targetAddr)) return
     console.log(`[Server] ${shooterAddr} hit ${targetAddr}`)
     room.send('playerEliminated', { address: targetAddr })
   })

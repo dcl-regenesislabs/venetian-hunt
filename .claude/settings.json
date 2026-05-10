@@ -1,7 +1,10 @@
 {
   "permissions": {
     "allow": [
-      "Bash(node -e ' *)"
+      "Bash(node -e ' *)",
+      "Read(//c/Users/Agustin/Documents/GitHub/cs-1.6/src/**)",
+      "Bash(node -e \"const ecs = require\\('@dcl/sdk/ecs'\\); console.log\\('ColliderLayer keys:', Object.keys\\(ecs.ColliderLayer\\).join\\(', '\\)\\)\")",
+      "WebSearch"
     ]
   }
 }

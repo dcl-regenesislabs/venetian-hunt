@@ -3,15 +3,16 @@ import {
   engine,
   inputSystem, InputAction, PointerEventType,
   GltfContainer, ColliderLayer, Transform,
-  PlayerIdentityData,
+  PlayerIdentityData, CameraModeArea, CameraType,
   Entity
 } from '@dcl/sdk/ecs'
 import { blinkEntity } from './client/propSystem'
 import { getUserData } from '~system/UserIdentity'
+import { movePlayerTo } from '~system/RestrictedActions'
 import { room } from './shared/messages'
 import { addVisiblePlayer, removeVisiblePlayer } from './avatarHiding'
 import { Color4, Quaternion } from '@dcl/sdk/math'
-import { activateShooter, deactivateShooter } from './client/shooterSystem'
+import { activateShooter, deactivateShooter, getLastShotMs, setWeaponEntity } from './client/shooterSystem'
 
 const WEAPON_SRC = 'assets/scene/Models/low-poly_agm-1.glb'
 
@@ -28,8 +29,9 @@ const PROPS = [
 ]
 
 let selectedIndex = 0
-let propEntity:   Entity | undefined
-let weaponEntity: Entity | undefined
+let propEntity:    Entity | undefined
+let weaponEntity:  Entity | undefined
+let camAreaEntity: Entity | undefined
 let playerRole: 'hider' | 'shooter' = 'hider'
 
 export function blinkLocalProp() {
@@ -56,17 +58,27 @@ export function setPlayerRole(role: 'hider' | 'shooter') {
         visibleMeshesCollisionMask: ColliderLayer.CL_NONE,
       })
       Transform.create(weaponEntity, {
-        parent: engine.PlayerEntity,
-        position: { x: 0.4, y: 1.1, z: 0.5 },
+        parent: engine.CameraEntity,
+        position: { x: 0.4, y: -0.3, z: 0.7 },
         rotation: Quaternion.fromEulerDegrees(0, 90, 0),
         scale: { x: 0.02, y: 0.02, z: 0.02 },
       })
+      setWeaponEntity(weaponEntity)
     }
+    // Force first-person: tiny CameraModeArea that always contains the local player
+    camAreaEntity = engine.addEntity()
+    Transform.create(camAreaEntity, { parent: engine.PlayerEntity, position: { x: 0, y: 0, z: 0 } })
+    CameraModeArea.create(camAreaEntity, { area: { x: 0.5, y: 2, z: 0.5 }, mode: CameraType.CT_FIRST_PERSON })
     activateShooter()
   } else {
     if (weaponEntity !== undefined) {
       engine.removeEntity(weaponEntity)
       weaponEntity = undefined
+      setWeaponEntity(undefined)
+    }
+    if (camAreaEntity !== undefined) {
+      engine.removeEntity(camAreaEntity)
+      camAreaEntity = undefined
     }
     deactivateShooter()
   }
@@ -96,6 +108,8 @@ function attachProp(src: string) {
     position: { x: 0, y: -0.1, z: 0 },
     scale: { x: 1, y: 1, z: 1 }
   })
+  // Hide locally — the camera inside the prop mesh tanks FPS.
+  // Other clients see it via their own world-space copy in propSystem.
 }
 
 export function setupUi() {
@@ -139,6 +153,31 @@ function OutlinedLabel(props: { value: string; width: number; height: number; fo
   )
 }
 
+const BLOOM_MS = 150  // how long the crosshair stays expanded after shooting
+
+function Crosshair() {
+  const blooming = Date.now() - getLastShotMs() < BLOOM_MS
+  const gap = blooming ? 14 : 6
+  const lineLength = blooming ? 14 : 10
+  const thickness = 2
+  const dot = 2
+
+  return (
+    <UiEntity uiTransform={{ width: 100, height: 100, positionType: 'absolute', position: { top: '50%', left: '50%' }, margin: { top: -50, left: -50 } }}>
+      {/* top */}
+      <UiEntity uiTransform={{ width: thickness, height: lineLength, positionType: 'absolute', position: { top: '50%', left: '50%' }, margin: { top: -(gap + lineLength), left: -(thickness / 2) } }} uiBackground={{ color: WHITE }} />
+      {/* bottom */}
+      <UiEntity uiTransform={{ width: thickness, height: lineLength, positionType: 'absolute', position: { top: '50%', left: '50%' }, margin: { top: gap, left: -(thickness / 2) } }} uiBackground={{ color: WHITE }} />
+      {/* left */}
+      <UiEntity uiTransform={{ width: lineLength, height: thickness, positionType: 'absolute', position: { top: '50%', left: '50%' }, margin: { top: -(thickness / 2), left: -(gap + lineLength) } }} uiBackground={{ color: WHITE }} />
+      {/* right */}
+      <UiEntity uiTransform={{ width: lineLength, height: thickness, positionType: 'absolute', position: { top: '50%', left: '50%' }, margin: { top: -(thickness / 2), left: gap } }} uiBackground={{ color: WHITE }} />
+      {/* dot */}
+      <UiEntity uiTransform={{ width: dot, height: dot, positionType: 'absolute', position: { top: '50%', left: '50%' }, margin: { top: -(dot / 2), left: -(dot / 2) } }} uiBackground={{ color: WHITE }} />
+    </UiEntity>
+  )
+}
+
 export const uiMenu = () => {
   const prop = PROPS[selectedIndex]
   const roleColor = playerRole === 'shooter' ? RED : GREEN
@@ -153,6 +192,7 @@ export const uiMenu = () => {
         justifyContent: 'space-between',
       }}
     >
+      {playerRole === 'shooter' && <Crosshair />}
       {/* ── Top: role badge + DEBUG switch button ── */}
       <UiEntity
         uiTransform={{
@@ -173,6 +213,14 @@ export const uiMenu = () => {
           onMouseDown={() => room.send('debugSwitchRole', {})}
         >
           <Label value="SWITCH ROLE" uiTransform={{ width: 140, height: 48 }}
+            textAlign="middle-center" fontSize={18} color={WHITE} />
+        </UiEntity>
+        <UiEntity
+          uiTransform={{ width: 120, height: 48, alignItems: 'center', justifyContent: 'center', margin: { left: 16 } }}
+          uiBackground={{ color: BG_BTN }}
+          onMouseDown={() => movePlayerTo({ newRelativePosition: { x: 47.1, y: 3, z: 56.4 } })}
+        >
+          <Label value="TELEPORT" uiTransform={{ width: 120, height: 48 }}
             textAlign="middle-center" fontSize={18} color={WHITE} />
         </UiEntity>
       </UiEntity>
