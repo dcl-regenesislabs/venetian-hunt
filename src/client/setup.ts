@@ -2,8 +2,8 @@ import { engine, PlayerIdentityData } from '@dcl/sdk/ecs'
 import { isStateSyncronized } from '@dcl/sdk/network'
 import { room } from '../shared/messages'
 import { updateShooterIds, addVisiblePlayer, removeVisiblePlayer, resetVisibility } from '../avatarHiding'
-import { onPlayerDisguised, onPlayerUndisguised } from './propSystem'
-import { getCurrentPropSrc, setPlayerRole } from '../ui'
+import { onPlayerDisguised, onPlayerUndisguised, blinkPlayerProp } from './propSystem'
+import { getCurrentPropSrc, setPlayerRole, blinkLocalProp } from '../ui'
 
 let synced = false
 
@@ -46,9 +46,9 @@ export function initClient() {
   room.onMessage('playerEliminated', (data) => {
     const myAddress = PlayerIdentityData.getOrNull(engine.PlayerEntity)?.address?.toLowerCase()
     if (data.address === myAddress) {
-      console.log('[Client] You were eliminated!')
+      blinkLocalProp()
     } else {
-      console.log(`[Client] ${data.address} was eliminated`)
+      blinkPlayerProp(data.address)
     }
   })
 }

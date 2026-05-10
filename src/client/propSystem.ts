@@ -1,4 +1,4 @@
-import { engine, Entity, GltfContainer, ColliderLayer, Transform, PlayerIdentityData } from '@dcl/sdk/ecs'
+import { engine, Entity, GltfContainer, ColliderLayer, Transform, PlayerIdentityData, VisibilityComponent } from '@dcl/sdk/ecs'
 
 // World-space prop entities for OTHER disguised players (not local)
 const propsByAddress = new Map<string, Entity>()
@@ -36,6 +36,11 @@ export function onPlayerDisguised(address: string, propSrc: string) {
   propsByAddress.set(normalized, entity)
 }
 
+export function blinkPlayerProp(address: string) {
+  const entity = propsByAddress.get(address.toLowerCase())
+  if (entity) blinkEntity(entity)
+}
+
 export function onPlayerUndisguised(address: string) {
   const entity = propsByAddress.get(address.toLowerCase())
   if (!entity) return
@@ -43,6 +48,35 @@ export function onPlayerUndisguised(address: string) {
   propsByAddress.delete(address.toLowerCase())
 }
 
+// ── Blink system ──────────────────────────────────────────────────
+type BlinkState = { entity: Entity; remaining: number; elapsed: number; visible: boolean }
+const blinkQueue: BlinkState[] = []
+const BLINK_INTERVAL = 0.1  // seconds between toggles
+const BLINK_DURATION = 1.5  // total seconds
+
+export function blinkEntity(entity: Entity) {
+  VisibilityComponent.createOrReplace(entity, { visible: true })
+  blinkQueue.push({ entity, remaining: BLINK_DURATION, elapsed: 0, visible: true })
+}
+
+engine.addSystem((dt: number) => {
+  for (let i = blinkQueue.length - 1; i >= 0; i--) {
+    const b = blinkQueue[i]
+    b.remaining -= dt
+    b.elapsed   += dt
+    if (b.elapsed >= BLINK_INTERVAL) {
+      b.elapsed = 0
+      b.visible = !b.visible
+      VisibilityComponent.createOrReplace(b.entity, { visible: b.visible })
+    }
+    if (b.remaining <= 0) {
+      VisibilityComponent.createOrReplace(b.entity, { visible: true })
+      blinkQueue.splice(i, 1)
+    }
+  }
+})
+
+// ── World-space props ─────────────────────────────────────────────
 // DCL's physics capsule keeps the player root slightly above the visual floor.
 // Subtract this offset so world-space props sit on the ground.
 const PHYSICS_FLOOR_OFFSET = 0.1

@@ -6,6 +6,7 @@ import {
   PlayerIdentityData,
   Entity
 } from '@dcl/sdk/ecs'
+import { blinkEntity } from './client/propSystem'
 import { getUserData } from '~system/UserIdentity'
 import { room } from './shared/messages'
 import { addVisiblePlayer, removeVisiblePlayer } from './avatarHiding'
@@ -30,6 +31,10 @@ let selectedIndex = 0
 let propEntity:   Entity | undefined
 let weaponEntity: Entity | undefined
 let playerRole: 'hider' | 'shooter' = 'hider'
+
+export function blinkLocalProp() {
+  if (propEntity !== undefined) blinkEntity(propEntity)
+}
 
 export function getCurrentPropSrc(): string {
   return PROPS[selectedIndex].src

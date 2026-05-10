@@ -3,21 +3,31 @@ import { engine, AvatarModifierArea, AvatarModifierType, Transform, Entity } fro
 const SCENE_CENTER = { x: 40, y: 25, z: 40 }
 const AREA_SIZE    = { x: 200, y: 100, z: 200 }
 
-let areaEntity: Entity | undefined
+let hideArea: Entity | undefined
 const shooterIds     = new Set<string>()
 const undisguisedIds = new Set<string>()
 
 function applyExcludeIds() {
-  if (!areaEntity) return
-  AvatarModifierArea.getMutable(areaEntity).excludeIds = [...shooterIds, ...undisguisedIds]
+  if (!hideArea) return
+  AvatarModifierArea.getMutable(hideArea).excludeIds = [...shooterIds, ...undisguisedIds]
 }
 
 export function setupAvatarHiding(): void {
-  areaEntity = engine.addEntity()
-  Transform.create(areaEntity, { position: SCENE_CENTER })
-  AvatarModifierArea.create(areaEntity, {
+  // Area 1: hides avatars — excludeIds = shooters + undisguised hiders
+  hideArea = engine.addEntity()
+  Transform.create(hideArea, { position: SCENE_CENTER })
+  AvatarModifierArea.create(hideArea, {
     area: AREA_SIZE,
-    modifiers: [AvatarModifierType.AMT_HIDE_AVATARS, AvatarModifierType.AMT_DISABLE_PASSPORTS],
+    modifiers: [AvatarModifierType.AMT_HIDE_AVATARS],
+    excludeIds: []
+  })
+
+  // Area 2: disables passports for everyone, no exceptions
+  const passportArea = engine.addEntity()
+  Transform.create(passportArea, { position: SCENE_CENTER })
+  AvatarModifierArea.create(passportArea, {
+    area: AREA_SIZE,
+    modifiers: [AvatarModifierType.AMT_DISABLE_PASSPORTS],
     excludeIds: []
   })
 }

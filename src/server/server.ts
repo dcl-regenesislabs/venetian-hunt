@@ -121,23 +121,8 @@ export function initServer() {
     if (!roles.shooters.includes(shooterAddr)) return
     if (!roles.hiders.includes(targetAddr))    return
 
-    console.log(`[Server] ${shooterAddr} eliminated ${targetAddr}`)
-
-    // Remove disguise
-    const state = DisguisedPlayersComponent.getMutable(disguisedEntity)
-    state.disguises = state.disguises.filter(d => d.address !== targetAddr)
-    room.send('playerUndisguised', { address: targetAddr })
-
-    // Remove from hiders
-    const newHiders = roles.hiders.filter(h => h !== targetAddr)
-    RolesComponent.createOrReplace(rolesEntity, { shooters: roles.shooters, hiders: newHiders })
+    console.log(`[Server] ${shooterAddr} hit ${targetAddr}`)
     room.send('playerEliminated', { address: targetAddr })
-
-    if (newHiders.length === 0) {
-      GameStateComponent.createOrReplace(gameEntity, { phase: 'results' })
-      room.send('gamePhaseChanged', { phase: 'results' })
-      console.log('[Server] Shooters win!')
-    }
   })
 
   room.onMessage('debugSwitchRole', (_, context) => {
