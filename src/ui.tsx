@@ -2,11 +2,11 @@ import ReactEcs, { ReactEcsRenderer, UiEntity, Label } from '@dcl/sdk/react-ecs'
 import {
   engine,
   inputSystem, InputAction, PointerEventType,
-  GltfContainer, ColliderLayer, Transform,
+  GltfContainer, ColliderLayer, Transform, VisibilityComponent,
   PlayerIdentityData, CameraModeArea, CameraType,
   Entity
 } from '@dcl/sdk/ecs'
-import { blinkEntity } from './client/propSystem'
+import { blinkEntity, stopBlinkingEntity } from './client/propSystem'
 import { getUserData } from '~system/UserIdentity'
 import { room } from './shared/messages'
 import { addVisiblePlayer, removeVisiblePlayer } from './avatarHiding'
@@ -44,6 +44,7 @@ export function getCurrentPropSrc(): string {
 
 function attachProp(src: string) {
   if (propEntity !== undefined) {
+    stopBlinkingEntity(propEntity)
     engine.removeEntity(propEntity)
     propEntity = undefined
   }
@@ -66,6 +67,7 @@ function attachProp(src: string) {
     position: { x: 0, y: -0.1, z: 0 },
     scale: { x: 1, y: 1, z: 1 }
   })
+  VisibilityComponent.createOrReplace(propEntity, { visible: true })
 }
 
 export function reattachProp() {
@@ -116,6 +118,7 @@ export function setPlayerRole(role: 'hider' | 'shooter', skipProp = false) {
 
 export function clearLocalProp() {
   if (propEntity !== undefined) {
+    stopBlinkingEntity(propEntity)
     engine.removeEntity(propEntity)
     propEntity = undefined
   }

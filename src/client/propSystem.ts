@@ -34,6 +34,7 @@ export function onPlayerDisguised(address: string, propSrc: string) {
   })
   // Position will be updated each frame by the system below
   Transform.create(entity, { position: { x: 0, y: -1000, z: 0 } })
+  VisibilityComponent.createOrReplace(entity, { visible: true })
   propsByAddress.set(normalized, entity)
   createHealthBar(normalized, entity)
 }
@@ -45,6 +46,7 @@ export function blinkPlayerProp(address: string) {
 
 export function clearAllProps() {
   for (const [, entity] of propsByAddress) {
+    stopBlinkingEntity(entity)
     engine.removeEntity(entity)  // removes health bar children too
   }
   propsByAddress.clear()
@@ -54,6 +56,7 @@ export function clearAllProps() {
 export function onPlayerUndisguised(address: string) {
   const entity = propsByAddress.get(address.toLowerCase())
   if (!entity) return
+  stopBlinkingEntity(entity)
   engine.removeEntity(entity)  // also removes health bar children
   propsByAddress.delete(address.toLowerCase())
   removeHealthBar(address.toLowerCase())
@@ -65,8 +68,17 @@ const blinkQueue: BlinkState[] = []
 const BLINK_INTERVAL = 0.1  // seconds between toggles
 const BLINK_DURATION = 1.5  // total seconds
 
-export function blinkEntity(entity: Entity) {
+export function stopBlinkingEntity(entity: Entity) {
+  for (let i = blinkQueue.length - 1; i >= 0; i--) {
+    if (blinkQueue[i].entity === entity) {
+      blinkQueue.splice(i, 1)
+    }
+  }
   VisibilityComponent.createOrReplace(entity, { visible: true })
+}
+
+export function blinkEntity(entity: Entity) {
+  stopBlinkingEntity(entity)
   blinkQueue.push({ entity, remaining: BLINK_DURATION, elapsed: 0, visible: true })
 }
 
