@@ -1,4 +1,4 @@
-import { engine, PlayerIdentityData } from '@dcl/sdk/ecs'
+import { engine, PlayerIdentityData, VirtualCamera, MainCamera, InputModifier, Transform, Entity } from '@dcl/sdk/ecs'
 import { isStateSyncronized } from '@dcl/sdk/network'
 import { movePlayerTo } from '~system/RestrictedActions'
 import { room } from '../shared/messages'
@@ -6,15 +6,59 @@ import { updateShooterIds, addVisiblePlayer, removeVisiblePlayer, resetVisibilit
 import { onPlayerDisguised, onPlayerUndisguised, blinkPlayerProp, clearAllProps } from './propSystem'
 import { updateShooterWeapons, clearShooterWeapons, updateShooterAim } from './shooterWeapons'
 import { spawnRemoteBullet } from './remoteBullets'
-import { setPlayerRole, blinkLocalProp, resetForLobby } from '../ui'
+import { setPlayerRole, blinkLocalProp, resetForLobby, clearLocalProp, reattachProp } from '../ui'
 import { pauseShooter, resumeShooter } from './shooterSystem'
 import { onHiderHit } from './hiderHealth'
 
 const SPAWN        = { x: 43.5, y: 2.75, z: 4 }
 const HIDER_SPAWN  = { x: 47.1, y: 5,    z: 56.4 }
 
+const CINEMATIC_HIDER_POS   = { x: 37.25, y: 4.5, z: 7.0 }
+const CINEMATIC_SHOOTER_POS = { x: 50.0,  y: 4.5, z: 7.0 }
+const CINEMATIC_CAM_POS     = { x: 43.5,  y: 5.0, z: -3.0 }
+const CINEMATIC_LOOK_AT_POS = { x: 43.625, y: 3.0, z: 6.75 }
+
 let synced     = false
 let localRole: 'hider' | 'shooter' = 'hider'
+let cinematicCamEntity:    Entity | undefined
+let cinematicTargetEntity: Entity | undefined
+
+function startCinematic() {
+  InputModifier.create(engine.PlayerEntity, {
+    mode: InputModifier.Mode.Standard({ disableAll: true })
+  })
+
+  const dest = localRole === 'hider' ? CINEMATIC_HIDER_POS : CINEMATIC_SHOOTER_POS
+  movePlayerTo({ newRelativePosition: dest, cameraTarget: CINEMATIC_CAM_POS })
+
+  cinematicTargetEntity = engine.addEntity()
+  Transform.create(cinematicTargetEntity, { position: CINEMATIC_LOOK_AT_POS })
+
+  cinematicCamEntity = engine.addEntity()
+  Transform.create(cinematicCamEntity, { position: CINEMATIC_CAM_POS })
+  VirtualCamera.create(cinematicCamEntity, {
+    lookAtEntity: cinematicTargetEntity,
+    defaultTransition: { transitionMode: VirtualCamera.Transition.Time(1.5) }
+  })
+  MainCamera.getMutable(engine.CameraEntity).virtualCameraEntity = cinematicCamEntity
+}
+
+function stopCinematic() {
+  if (cinematicCamEntity !== undefined) {
+    if (MainCamera.has(engine.CameraEntity)) {
+      MainCamera.getMutable(engine.CameraEntity).virtualCameraEntity = undefined
+    }
+    engine.removeEntity(cinematicCamEntity)
+    cinematicCamEntity = undefined
+  }
+  if (cinematicTargetEntity !== undefined) {
+    engine.removeEntity(cinematicTargetEntity)
+    cinematicTargetEntity = undefined
+  }
+  if (InputModifier.has(engine.PlayerEntity)) {
+    InputModifier.deleteFrom(engine.PlayerEntity)
+  }
+}
 
 // Shared UI state — read by ui.tsx every render frame
 export const uiState = {
@@ -56,7 +100,8 @@ export function initClient() {
     uiState.hidersLeft = data.hiders.length
 
     uiState.localHealth = 10
-    setPlayerRole(localRole)
+    // skipProp=true: during cinematic hiders appear as avatars; prop is attached when hiding starts
+    setPlayerRole(localRole, true)
     updateShooterWeapons(data.shooters, myAddress ?? '')
   })
 
@@ -65,7 +110,12 @@ export function initClient() {
     console.log('[Client] Phase:', data.phase)
     uiState.phase = data.phase
 
+    if (data.phase === 'cinematic') {
+      startCinematic()
+    }
+
     if (data.phase === 'lobby') {
+      stopCinematic()
       resetVisibility()
       clearShooterWeapons()
       resetForLobby()
@@ -81,12 +131,16 @@ export function initClient() {
 
     if (data.phase === 'hiding') {
       pauseShooter()
-      // Hiders run to hide; shooters wait at spawn
-      const dest = localRole === 'hider' ? HIDER_SPAWN : SPAWN
-      movePlayerTo({ newRelativePosition: dest })
+      if (localRole === 'hider') {
+        stopCinematic()
+        reattachProp()
+        movePlayerTo({ newRelativePosition: HIDER_SPAWN })
+      }
+      // Shooters stay on their boat with camera and movement locked until playing
     }
 
     if (data.phase === 'playing') {
+      stopCinematic()
       resumeShooter()
       uiState.eliminated         = false
       uiState.playingSecondsLeft = 180
@@ -96,7 +150,7 @@ export function initClient() {
     }
 
     if (data.phase === 'results') {
-      movePlayerTo({ newRelativePosition: SPAWN })
+      stopCinematic()
     }
   })
 
@@ -144,8 +198,10 @@ export function initClient() {
     const myAddress = PlayerIdentityData.getOrNull(engine.PlayerEntity)?.address?.toLowerCase()
     if (data.address === myAddress) {
       uiState.localHealth = 0
-      blinkLocalProp()
-      uiState.eliminated = true
+      uiState.eliminated  = true
+      clearLocalProp()
+      room.send('undisguise', {})
+      movePlayerTo({ newRelativePosition: SPAWN })
     } else {
       blinkPlayerProp(data.address)
       onHiderHit(data.address, 0)

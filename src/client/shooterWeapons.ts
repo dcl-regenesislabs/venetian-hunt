@@ -26,7 +26,8 @@ export function updateShooterWeapons(shooterAddresses: string[], localAddress: s
   // Remove weapons for players no longer shooters
   for (const [addr, entry] of entriesByAddress) {
     if (!normalized.includes(addr)) {
-      engine.removeEntity(entry.rootEntity) // removes children too
+      engine.removeEntity(entry.modelEntity)
+      engine.removeEntity(entry.rootEntity)
       entriesByAddress.delete(addr)
     }
   }
@@ -68,7 +69,10 @@ export function updateShooterWeapons(shooterAddresses: string[], localAddress: s
 }
 
 export function clearShooterWeapons() {
-  for (const entry of entriesByAddress.values()) engine.removeEntity(entry.rootEntity)
+  for (const entry of entriesByAddress.values()) {
+    engine.removeEntity(entry.modelEntity)
+    engine.removeEntity(entry.rootEntity)
+  }
   entriesByAddress.clear()
 }
 

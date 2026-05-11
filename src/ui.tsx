@@ -68,7 +68,11 @@ function attachProp(src: string) {
   })
 }
 
-export function setPlayerRole(role: 'hider' | 'shooter') {
+export function reattachProp() {
+  attachProp(PROPS[selectedIndex].src)
+}
+
+export function setPlayerRole(role: 'hider' | 'shooter', skipProp = false) {
   playerRole = role
 
   if (role === 'shooter') {
@@ -106,16 +110,22 @@ export function setPlayerRole(role: 'hider' | 'shooter') {
       camAreaEntity = undefined
     }
     deactivateShooter()
-    // Re-attach current prop (also sends selectProp to server)
-    attachProp(PROPS[selectedIndex].src)
+    if (!skipProp) attachProp(PROPS[selectedIndex].src)
   }
 }
 
-export function resetForLobby() {
+export function clearLocalProp() {
   if (propEntity !== undefined) {
     engine.removeEntity(propEntity)
     propEntity = undefined
   }
+  const myAddress = PlayerIdentityData.getOrNull(engine.PlayerEntity)?.address?.toLowerCase()
+  if (myAddress) addVisiblePlayer(myAddress)
+}
+
+export function resetForLobby() {
+  clearLocalProp()
+  deactivateShooter()
   if (weaponEntity !== undefined) {
     engine.removeEntity(weaponEntity)
     weaponEntity = undefined
@@ -125,7 +135,6 @@ export function resetForLobby() {
     engine.removeEntity(camAreaEntity)
     camAreaEntity = undefined
   }
-  deactivateShooter()
   playerRole    = 'hider'
   selectedIndex = 0
 }
@@ -340,6 +349,21 @@ function PlayingHUD() {
   )
 }
 
+function CinematicPanel() {
+  const isHider  = playerRole === 'hider'
+  const teamName = isHider ? 'PROPS' : 'HUNTERS'
+  const color    = isHider ? GREEN : RED
+  return (
+    <UiEntity
+      uiTransform={{ width: 600, height: 180, flexDirection: 'column', alignItems: 'center', justifyContent: 'center', positionType: 'absolute', position: { top: '50%', left: '50%' }, margin: { top: -90, left: -300 } }}
+      uiBackground={{ color: BG_DARK }}
+    >
+      <OutlinedLabel value="GET READY!" width={580} height={80} fontSize={56} color={YELLOW} />
+      <OutlinedLabel value={`You are on the ${teamName} team`} width={580} height={56} fontSize={30} marginTop={8} color={color} />
+    </UiEntity>
+  )
+}
+
 function ResultsPanel() {
   const shootersWon = uiState.winner === 'shooters'
   const title = shootersWon ? '🔫  SHOOTERS WIN!' : '🫥  HIDERS WIN!'
@@ -364,6 +388,7 @@ export const uiMenu = () => {
 
   return (
     <UiEntity uiTransform={{ width: '100%', height: '100%', flexDirection: 'column', alignItems: 'center', justifyContent: 'space-between' }}>
+      {phase === 'cinematic' && <CinematicPanel />}
       {phase === 'lobby'   && <LobbyPanel />}
       {phase === 'hiding'  && playerRole === 'hider'   && <HidingPanelHider />}
       {phase === 'hiding'  && playerRole === 'shooter'  && <HidingPanelShooter />}

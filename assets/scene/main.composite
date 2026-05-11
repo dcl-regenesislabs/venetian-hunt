@@ -97,16 +97,16 @@
               "y": 0.75,
               "z": 40
             },
+            "scale": {
+              "x": 80,
+              "y": 80,
+              "z": 2
+            },
             "rotation": {
               "x": 0.7071067690849304,
               "y": 0,
               "z": 0,
               "w": -0.7071067690849304
-            },
-            "scale": {
-              "x": 80,
-              "y": 80,
-              "z": 2
             },
             "parent": 0
           }
@@ -130,6 +130,27 @@
               "w": 1
             },
             "parent": 0
+          }
+        },
+        "514": {
+          "json": {
+            "position": {
+              "x": 4.440892098500626e-16,
+              "y": 2,
+              "z": -7.105427357601002e-15
+            },
+            "rotation": {
+              "x": 1.2101617485882343e-8,
+              "y": 1.2101617485882343e-8,
+              "z": 0.7071067690849304,
+              "w": 0.7071067690849304
+            },
+            "scale": {
+              "x": 1,
+              "y": 2,
+              "z": 1
+            },
+            "parent": 530
           }
         },
         "515": {
@@ -223,16 +244,16 @@
               "y": 1.75,
               "z": 4.25
             },
+            "scale": {
+              "x": 1,
+              "y": 1,
+              "z": 1
+            },
             "rotation": {
               "x": 0,
               "y": 0.7071067690849304,
               "z": 0,
               "w": 0.7071067690849304
-            },
-            "scale": {
-              "x": 1,
-              "y": 1,
-              "z": 1
             },
             "parent": 0
           }
@@ -345,22 +366,22 @@
         "525": {
           "json": {
             "position": {
-              "x": 46,
-              "y": 2.5,
-              "z": 2.5
+              "x": 4.440892098500626e-16,
+              "y": 2,
+              "z": -7.105427357601002e-15
             },
             "rotation": {
-              "x": 0.5,
-              "y": 0.5,
-              "z": 0.5,
-              "w": 0.5
+              "x": 1.2101617485882343e-8,
+              "y": 1.2101617485882343e-8,
+              "z": 0.7071067690849304,
+              "w": 0.7071067690849304
             },
             "scale": {
               "x": 1,
               "y": 2,
               "z": 1
             },
-            "parent": 0
+            "parent": 527
           }
         },
         "526": {
@@ -391,16 +412,16 @@
               "y": 0.5,
               "z": 2.5
             },
+            "scale": {
+              "x": 1,
+              "y": 1,
+              "z": 1
+            },
             "rotation": {
               "x": 0,
               "y": 0.7071067690849304,
               "z": 0,
               "w": 0.7071067690849304
-            },
-            "scale": {
-              "x": 1,
-              "y": 1,
-              "z": 1
             },
             "parent": 0
           }
@@ -411,6 +432,48 @@
               "x": 41.25,
               "y": 1.75,
               "z": 4.25
+            },
+            "scale": {
+              "x": 1,
+              "y": 1,
+              "z": 1
+            },
+            "rotation": {
+              "x": 0,
+              "y": 0.7071067690849304,
+              "z": 0,
+              "w": 0.7071067690849304
+            },
+            "parent": 0
+          }
+        },
+        "529": {
+          "json": {
+            "position": {
+              "x": -4,
+              "y": 0,
+              "z": 1.3691416711480997e-7
+            },
+            "rotation": {
+              "x": 0,
+              "y": 0,
+              "z": 0,
+              "w": 1
+            },
+            "scale": {
+              "x": 1,
+              "y": 1,
+              "z": 1
+            },
+            "parent": 530
+          }
+        },
+        "530": {
+          "json": {
+            "position": {
+              "x": 21.25,
+              "y": 0.5,
+              "z": 2.5
             },
             "rotation": {
               "x": 0,
@@ -447,10 +510,115 @@
             "parent": 0
           }
         },
-        "547": {
+        "532": {
           "json": {
             "position": {
-              "x": 46,
+              "x": 4.440892098500626e-16,
+              "y": 2,
+              "z": -7.105427357601002e-15
+            },
+            "rotation": {
+              "x": 1.2101617485882343e-8,
+              "y": 1.2101617485882343e-8,
+              "z": 0.7071067690849304,
+              "w": 0.7071067690849304
+            },
+            "scale": {
+              "x": 1,
+              "y": 2,
+              "z": 1
+            },
+            "parent": 534
+          }
+        },
+        "533": {
+          "json": {
+            "position": {
+              "x": -4,
+              "y": 0,
+              "z": 1.3691416711480997e-7
+            },
+            "rotation": {
+              "x": 0,
+              "y": 0,
+              "z": 0,
+              "w": 1
+            },
+            "scale": {
+              "x": 1,
+              "y": 1,
+              "z": 1
+            },
+            "parent": 534
+          }
+        },
+        "534": {
+          "json": {
+            "position": {
+              "x": 26,
+              "y": 0.5,
+              "z": 2.5
+            },
+            "rotation": {
+              "x": 0,
+              "y": 0.7071067690849304,
+              "z": 0,
+              "w": 0.7071067690849304
+            },
+            "scale": {
+              "x": 1,
+              "y": 1,
+              "z": 1
+            },
+            "parent": 0
+          }
+        },
+        "535": {
+          "json": {
+            "position": {
+              "x": 4.440892098500626e-16,
+              "y": 2,
+              "z": -7.105427357601002e-15
+            },
+            "rotation": {
+              "x": 1.2101617485882343e-8,
+              "y": 1.2101617485882343e-8,
+              "z": 0.7071067690849304,
+              "w": 0.7071067690849304
+            },
+            "scale": {
+              "x": 1,
+              "y": 2,
+              "z": 1
+            },
+            "parent": 537
+          }
+        },
+        "536": {
+          "json": {
+            "position": {
+              "x": -4,
+              "y": 0,
+              "z": 1.3691416711480997e-7
+            },
+            "rotation": {
+              "x": 0,
+              "y": 0,
+              "z": 0,
+              "w": 1
+            },
+            "scale": {
+              "x": 1,
+              "y": 1,
+              "z": 1
+            },
+            "parent": 537
+          }
+        },
+        "537": {
+          "json": {
+            "position": {
+              "x": 26,
               "y": 0.5,
               "z": 6.5
             },
@@ -468,12 +636,33 @@
             "parent": 0
           }
         },
-        "548": {
+        "538": {
           "json": {
             "position": {
-              "x": 36.75,
+              "x": 4.440892098500626e-16,
               "y": 2,
-              "z": 6.5
+              "z": -7.105427357601002e-15
+            },
+            "rotation": {
+              "x": 1.2101617485882343e-8,
+              "y": 1.2101617485882343e-8,
+              "z": 0.7071067690849304,
+              "w": 0.7071067690849304
+            },
+            "scale": {
+              "x": 1,
+              "y": 2,
+              "z": 1
+            },
+            "parent": 540
+          }
+        },
+        "539": {
+          "json": {
+            "position": {
+              "x": -4,
+              "y": 0,
+              "z": 1.3691416711480997e-7
             },
             "rotation": {
               "x": 0,
@@ -485,6 +674,111 @@
               "x": 1,
               "y": 1,
               "z": 1
+            },
+            "parent": 540
+          }
+        },
+        "540": {
+          "json": {
+            "position": {
+              "x": 21.25,
+              "y": 0.5,
+              "z": 6.5
+            },
+            "rotation": {
+              "x": 0,
+              "y": 0.7071067690849304,
+              "z": 0,
+              "w": 0.7071067690849304
+            },
+            "scale": {
+              "x": 1,
+              "y": 1,
+              "z": 1
+            },
+            "parent": 0
+          }
+        },
+        "541": {
+          "json": {
+            "position": {
+              "x": 30,
+              "y": 1.75,
+              "z": 4.25
+            },
+            "rotation": {
+              "x": 0,
+              "y": 0.7071067690849304,
+              "z": 0,
+              "w": 0.7071067690849304
+            },
+            "scale": {
+              "x": 1,
+              "y": 1,
+              "z": 1
+            },
+            "parent": 0
+          }
+        },
+        "542": {
+          "json": {
+            "position": {
+              "x": 33.75,
+              "y": 1.75,
+              "z": 4.25
+            },
+            "rotation": {
+              "x": 0,
+              "y": 0.7071067690849304,
+              "z": 0,
+              "w": 0.7071067690849304
+            },
+            "scale": {
+              "x": 1,
+              "y": 1,
+              "z": 1
+            },
+            "parent": 0
+          }
+        },
+        "547": {
+          "json": {
+            "position": {
+              "x": -4,
+              "y": 0,
+              "z": 1.3691416711480997e-7
+            },
+            "rotation": {
+              "x": 0,
+              "y": 0,
+              "z": 0,
+              "w": 1
+            },
+            "scale": {
+              "x": 1,
+              "y": 1,
+              "z": 1
+            },
+            "parent": 527
+          }
+        },
+        "548": {
+          "json": {
+            "position": {
+              "x": 37.25,
+              "y": 2,
+              "z": 6.75
+            },
+            "rotation": {
+              "x": 0,
+              "y": 0,
+              "z": 0,
+              "w": 1
+            },
+            "scale": {
+              "x": 1.2000000476837158,
+              "y": 1.2000000476837158,
+              "z": 1.2000000476837158
             },
             "parent": 0
           }
@@ -503,9 +797,9 @@
               "w": 1
             },
             "scale": {
-              "x": 1,
-              "y": 1,
-              "z": 1
+              "x": 1.2000000476837158,
+              "y": 1.2000000476837158,
+              "z": 1.2000000476837158
             },
             "parent": 0
           }
@@ -517,16 +811,16 @@
               "y": 1.75,
               "z": 4.25
             },
+            "scale": {
+              "x": 1,
+              "y": 1,
+              "z": 1
+            },
             "rotation": {
               "x": 0,
               "y": 0.7071067690849304,
               "z": 0,
               "w": 0.7071067690849304
-            },
-            "scale": {
-              "x": 1,
-              "y": 1,
-              "z": 1
             },
             "parent": 0
           }
@@ -538,16 +832,16 @@
               "y": 1.75,
               "z": 4.25
             },
+            "scale": {
+              "x": 1,
+              "y": 1,
+              "z": 1
+            },
             "rotation": {
               "x": 0,
               "y": 0.7071067690849304,
               "z": 0,
               "w": 0.7071067690849304
-            },
-            "scale": {
-              "x": 1,
-              "y": 1,
-              "z": 1
             },
             "parent": 0
           }
@@ -589,6 +883,13 @@
             "src": "assets/scene/Models/venice_cityscene_main_without_props_scaled_001.glb",
             "visibleMeshesCollisionMask": 2,
             "invisibleMeshesCollisionMask": 2
+          }
+        },
+        "514": {
+          "json": {
+            "src": "assets/asset-packs/large_plank_fence/FenceWoodLarge_01/FenceWoodLarge_01.glb",
+            "visibleMeshesCollisionMask": 0,
+            "invisibleMeshesCollisionMask": 3
           }
         },
         "515": {
@@ -655,6 +956,97 @@
           }
         },
         "528": {
+          "json": {
+            "src": "assets/asset-packs/medium_straight_old_dock_module/DocksModuleMedium_02/DocksModuleMedium_02.glb",
+            "visibleMeshesCollisionMask": 0,
+            "invisibleMeshesCollisionMask": 3
+          }
+        },
+        "529": {
+          "json": {
+            "src": "assets/asset-packs/large_plank_fence/FenceWoodLarge_01/FenceWoodLarge_01.glb",
+            "visibleMeshesCollisionMask": 0,
+            "invisibleMeshesCollisionMask": 3
+          }
+        },
+        "530": {
+          "json": {
+            "src": "assets/asset-packs/large_plank_fence/FenceWoodLarge_01/FenceWoodLarge_01.glb",
+            "visibleMeshesCollisionMask": 0,
+            "invisibleMeshesCollisionMask": 3
+          }
+        },
+        "532": {
+          "json": {
+            "src": "assets/asset-packs/large_plank_fence/FenceWoodLarge_01/FenceWoodLarge_01.glb",
+            "visibleMeshesCollisionMask": 0,
+            "invisibleMeshesCollisionMask": 3
+          }
+        },
+        "533": {
+          "json": {
+            "src": "assets/asset-packs/large_plank_fence/FenceWoodLarge_01/FenceWoodLarge_01.glb",
+            "visibleMeshesCollisionMask": 0,
+            "invisibleMeshesCollisionMask": 3
+          }
+        },
+        "534": {
+          "json": {
+            "src": "assets/asset-packs/large_plank_fence/FenceWoodLarge_01/FenceWoodLarge_01.glb",
+            "visibleMeshesCollisionMask": 0,
+            "invisibleMeshesCollisionMask": 3
+          }
+        },
+        "535": {
+          "json": {
+            "src": "assets/asset-packs/large_plank_fence/FenceWoodLarge_01/FenceWoodLarge_01.glb",
+            "visibleMeshesCollisionMask": 0,
+            "invisibleMeshesCollisionMask": 3
+          }
+        },
+        "536": {
+          "json": {
+            "src": "assets/asset-packs/large_plank_fence/FenceWoodLarge_01/FenceWoodLarge_01.glb",
+            "visibleMeshesCollisionMask": 0,
+            "invisibleMeshesCollisionMask": 3
+          }
+        },
+        "537": {
+          "json": {
+            "src": "assets/asset-packs/large_plank_fence/FenceWoodLarge_01/FenceWoodLarge_01.glb",
+            "visibleMeshesCollisionMask": 0,
+            "invisibleMeshesCollisionMask": 3
+          }
+        },
+        "538": {
+          "json": {
+            "src": "assets/asset-packs/large_plank_fence/FenceWoodLarge_01/FenceWoodLarge_01.glb",
+            "visibleMeshesCollisionMask": 0,
+            "invisibleMeshesCollisionMask": 3
+          }
+        },
+        "539": {
+          "json": {
+            "src": "assets/asset-packs/large_plank_fence/FenceWoodLarge_01/FenceWoodLarge_01.glb",
+            "visibleMeshesCollisionMask": 0,
+            "invisibleMeshesCollisionMask": 3
+          }
+        },
+        "540": {
+          "json": {
+            "src": "assets/asset-packs/large_plank_fence/FenceWoodLarge_01/FenceWoodLarge_01.glb",
+            "visibleMeshesCollisionMask": 0,
+            "invisibleMeshesCollisionMask": 3
+          }
+        },
+        "541": {
+          "json": {
+            "src": "assets/asset-packs/medium_straight_old_dock_module/DocksModuleMedium_02/DocksModuleMedium_02.glb",
+            "visibleMeshesCollisionMask": 0,
+            "invisibleMeshesCollisionMask": 3
+          }
+        },
+        "542": {
           "json": {
             "src": "assets/asset-packs/medium_straight_old_dock_module/DocksModuleMedium_02/DocksModuleMedium_02.glb",
             "visibleMeshesCollisionMask": 0,
@@ -1021,6 +1413,11 @@
             "value": "venice_cityscene_main_without_props_scaled_001.glb"
           }
         },
+        "514": {
+          "json": {
+            "value": "Large Plank Fence_4"
+          }
+        },
         "515": {
           "json": {
             "value": "hollow_cylinder_single_wall_52x26x52.glb"
@@ -1091,9 +1488,74 @@
             "value": "Medium Straight Old Dock Module_3"
           }
         },
+        "529": {
+          "json": {
+            "value": "Large Plank Fence_4"
+          }
+        },
+        "530": {
+          "json": {
+            "value": "Large Plank Fence_4"
+          }
+        },
         "531": {
           "json": {
             "value": "Cylinder_7"
+          }
+        },
+        "532": {
+          "json": {
+            "value": "Large Plank Fence_5"
+          }
+        },
+        "533": {
+          "json": {
+            "value": "Large Plank Fence_5"
+          }
+        },
+        "534": {
+          "json": {
+            "value": "Large Plank Fence_5"
+          }
+        },
+        "535": {
+          "json": {
+            "value": "Large Plank Fence_6"
+          }
+        },
+        "536": {
+          "json": {
+            "value": "Large Plank Fence_6"
+          }
+        },
+        "537": {
+          "json": {
+            "value": "Large Plank Fence_6"
+          }
+        },
+        "538": {
+          "json": {
+            "value": "Large Plank Fence_7"
+          }
+        },
+        "539": {
+          "json": {
+            "value": "Large Plank Fence_7"
+          }
+        },
+        "540": {
+          "json": {
+            "value": "Large Plank Fence_7"
+          }
+        },
+        "541": {
+          "json": {
+            "value": "Medium Straight Old Dock Module_6"
+          }
+        },
+        "542": {
+          "json": {
+            "value": "Medium Straight Old Dock Module_7"
           }
         },
         "547": {
@@ -1170,7 +1632,7 @@
         "serializationType": "map"
       },
       "data": {
-        "525": {
+        "0": {
           "json": {
             "gizmo": 1
           }
@@ -1235,7 +1697,10 @@
                   524,
                   580,
                   527,
-                  547,
+                  530,
+                  537,
+                  540,
+                  534,
                   515,
                   520,
                   526,
@@ -1249,8 +1714,9 @@
                   519,
                   550,
                   528,
+                  541,
+                  542,
                   551,
-                  525,
                   548,
                   549
                 ]
@@ -1297,8 +1763,10 @@
               },
               {
                 "entity": 527,
-                "open": true,
-                "children": []
+                "children": [
+                  525,
+                  547
+                ]
               },
               {
                 "entity": 531,
@@ -1383,6 +1851,74 @@
               {
                 "entity": 551,
                 "children": []
+              },
+              {
+                "entity": 530,
+                "children": [
+                  529,
+                  514
+                ]
+              },
+              {
+                "entity": 529,
+                "children": []
+              },
+              {
+                "entity": 514,
+                "children": []
+              },
+              {
+                "entity": 534,
+                "children": [
+                  533,
+                  532
+                ]
+              },
+              {
+                "entity": 533,
+                "children": []
+              },
+              {
+                "entity": 532,
+                "children": []
+              },
+              {
+                "entity": 537,
+                "children": [
+                  536,
+                  535
+                ]
+              },
+              {
+                "entity": 536,
+                "children": []
+              },
+              {
+                "entity": 535,
+                "children": []
+              },
+              {
+                "entity": 540,
+                "children": [
+                  539,
+                  538
+                ]
+              },
+              {
+                "entity": 539,
+                "children": []
+              },
+              {
+                "entity": 538,
+                "children": []
+              },
+              {
+                "entity": 541,
+                "children": []
+              },
+              {
+                "entity": 542,
+                "children": []
               }
             ]
           }
@@ -1410,6 +1946,9 @@
           "json": {}
         },
         "513": {
+          "json": {}
+        },
+        "514": {
           "json": {}
         },
         "515": {
@@ -1454,7 +1993,46 @@
         "528": {
           "json": {}
         },
+        "529": {
+          "json": {}
+        },
+        "530": {
+          "json": {}
+        },
         "531": {
+          "json": {}
+        },
+        "532": {
+          "json": {}
+        },
+        "533": {
+          "json": {}
+        },
+        "534": {
+          "json": {}
+        },
+        "535": {
+          "json": {}
+        },
+        "536": {
+          "json": {}
+        },
+        "537": {
+          "json": {}
+        },
+        "538": {
+          "json": {}
+        },
+        "539": {
+          "json": {}
+        },
+        "540": {
+          "json": {}
+        },
+        "541": {
+          "json": {}
+        },
+        "542": {
           "json": {}
         },
         "547": {
@@ -2289,12 +2867,9 @@
             "thumbnail": "assets/images/autogenerated-thumbnail.png",
             "categories": [],
             "author": "SDK",
+            "email": "",
             "tags": [],
             "layout": {
-              "base": {
-                "x": 0,
-                "y": 0
-              },
               "parcels": [
                 {
                   "x": 0,
@@ -2396,8 +2971,14 @@
                   "x": 4,
                   "y": 0
                 }
-              ]
+              ],
+              "base": {
+                "x": 0,
+                "y": 0
+              }
             },
+            "silenceVoiceChat": false,
+            "disablePortableExperiences": false,
             "spawnPoints": [
               {
                 "name": "SpawnArea1",
@@ -2411,8 +2992,11 @@
                     ]
                   },
                   "y": {
-                    "$case": "single",
-                    "value": 2.75
+                    "$case": "range",
+                    "value": [
+                      2.75,
+                      2.75
+                    ]
                   },
                   "z": {
                     "$case": "range",
@@ -2429,7 +3013,9 @@
                 }
               }
             ],
-            "skyboxConfig": {}
+            "skyboxConfig": {},
+            "creator": "",
+            "disableNearbyVoiceChat": false
           }
         }
       }

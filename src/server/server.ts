@@ -6,6 +6,7 @@ import { PROP_SPAWN_POINTS } from '../propSpawnPoints'
 
 const VALID_PROP_SRCS      = new Set(Object.keys(PROP_SPAWN_POINTS))
 const MIN_PLAYERS          = 2
+const CINEMATIC_DURATION_S = 15
 const HIDING_DURATION_S    = 30
 const PLAYING_DURATION_S   = 180  // 3 minutes
 const RESULTS_DURATION_S   = 8
@@ -78,15 +79,23 @@ export function initServer() {
   })
 
   // --- Phase transitions ---
-  function startHidingPhase() {
+  function startCinematicPhase() {
     const roles = assignRoles([...connectedPlayers])
     RolesComponent.createOrReplace(rolesEntity, roles)
-    GameStateComponent.createOrReplace(gameEntity, { phase: 'hiding' })
     DisguisedPlayersComponent.createOrReplace(disguisedEntity, { disguises: [] })
+    GameStateComponent.createOrReplace(gameEntity, { phase: 'cinematic' })
 
     room.send('rolesAssigned', roles)
+    room.send('gamePhaseChanged', { phase: 'cinematic' })
+    console.log(`[Server] Cinematic phase — shooters: ${roles.shooters}, hiders: ${roles.hiders}`)
+
+    startTimer(CINEMATIC_DURATION_S, (_) => {}, startHidingPhase)
+  }
+
+  function startHidingPhase() {
+    GameStateComponent.createOrReplace(gameEntity, { phase: 'hiding' })
     room.send('gamePhaseChanged', { phase: 'hiding' })
-    console.log(`[Server] Hiding phase — shooters: ${roles.shooters}, hiders: ${roles.hiders}`)
+    console.log('[Server] Hiding phase started')
 
     startTimer(
       HIDING_DURATION_S,
@@ -274,6 +283,6 @@ export function initServer() {
     if (phase !== 'lobby') return
     if (connectedPlayers.size < MIN_PLAYERS) return
     console.log(`[Server] Game started by ${context.from}`)
-    startHidingPhase()
+    startCinematicPhase()
   })
 }
