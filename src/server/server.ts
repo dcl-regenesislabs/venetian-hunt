@@ -4,19 +4,26 @@ import { room } from '../shared/messages'
 import { GameStateComponent, RolesComponent, DisguisedPlayersComponent } from '../shared/schemas'
 import { PROP_SPAWN_POINTS } from '../propSpawnPoints'
 
-const VALID_PROP_SRCS = new Set(Object.keys(PROP_SPAWN_POINTS))
-const MIN_PLAYERS_TO_START = 2
+const VALID_PROP_SRCS      = new Set(Object.keys(PROP_SPAWN_POINTS))
+const MIN_PLAYERS          = 2
+const HIDING_DURATION_S    = 30
+const PLAYING_DURATION_S   = 180  // 3 minutes
+const RESULTS_DURATION_S   = 8
 
-// 1 shooter per every 3 hiders, minimum 1 shooter
+// 1 shooter per ~2 hiders, minimum 1
 function assignRoles(addresses: string[]): { shooters: string[]; hiders: string[] } {
-  // DEBUG: everyone is a hider
-  return { shooters: [], hiders: [...addresses] }
+  const shuffled     = [...addresses].sort(() => Math.random() - 0.5)
+  const shooterCount = Math.max(1, Math.round(addresses.length / 3))
+  return {
+    shooters: shuffled.slice(0, shooterCount),
+    hiders:   shuffled.slice(shooterCount),
+  }
 }
 
 export function initServer() {
   console.log('[Server] Prop Hunt server starting...')
 
-  // --- Synced game state entities (IDs 1-3 reserved) ---
+  // --- Synced entities (IDs 1-3 reserved) ---
   const gameEntity: Entity = 1 as Entity
   GameStateComponent.create(gameEntity, { phase: 'lobby' })
   syncEntity(gameEntity, [GameStateComponent.componentId], 1)
@@ -29,151 +36,244 @@ export function initServer() {
   DisguisedPlayersComponent.create(disguisedEntity, { disguises: [] })
   syncEntity(disguisedEntity, [DisguisedPlayersComponent.componentId], 3)
 
-  // --- Track connected players ---
+  // --- Runtime state ---
   const connectedPlayers = new Set<string>()
+  let activeHiders       = new Set<string>()
+  const hiderHealth      = new Map<string, number>()
 
-  engine.addSystem(() => {
-    for (const [, identity] of engine.getEntitiesWith(PlayerIdentityData)) {
-      const addr = identity.address.toLowerCase()
-      if (!connectedPlayers.has(addr)) {
-        connectedPlayers.add(addr)
-        console.log(`[Server] Player joined: ${addr} (total: ${connectedPlayers.size})`)
-        tryStartGame()
-      }
+  // --- Single-slot timer ---
+  let timerSecondsLeft = 0
+  let timerOnTick: ((s: number) => void) | null = null
+  let timerOnExpire: (() => void) | null = null
+  let timerTickAccum = 0
+
+  function startTimer(seconds: number, onTick: (s: number) => void, onExpire: () => void) {
+    timerSecondsLeft = seconds
+    timerOnTick      = onTick
+    timerOnExpire    = onExpire
+    timerTickAccum   = 0
+    onTick(seconds)
+  }
+
+  function cancelTimer() {
+    timerOnTick    = null
+    timerOnExpire  = null
+    timerSecondsLeft = 0
+    timerTickAccum   = 0
+  }
+
+  engine.addSystem((dt: number) => {
+    if (!timerOnExpire) return
+    timerSecondsLeft -= dt
+    timerTickAccum   += dt
+    if (timerTickAccum >= 1) {
+      timerTickAccum -= 1
+      timerOnTick?.(Math.max(1, Math.ceil(timerSecondsLeft)))
     }
-    // Detect disconnects
+    if (timerSecondsLeft <= 0) {
+      const expire  = timerOnExpire
+      cancelTimer()
+      expire()
+    }
+  })
+
+  // --- Phase transitions ---
+  function startHidingPhase() {
+    const roles = assignRoles([...connectedPlayers])
+    RolesComponent.createOrReplace(rolesEntity, roles)
+    GameStateComponent.createOrReplace(gameEntity, { phase: 'hiding' })
+    DisguisedPlayersComponent.createOrReplace(disguisedEntity, { disguises: [] })
+
+    room.send('rolesAssigned', roles)
+    room.send('gamePhaseChanged', { phase: 'hiding' })
+    console.log(`[Server] Hiding phase — shooters: ${roles.shooters}, hiders: ${roles.hiders}`)
+
+    startTimer(
+      HIDING_DURATION_S,
+      (s) => room.send('hideCountdown', { seconds: s }),
+      startPlayingPhase,
+    )
+  }
+
+  function startPlayingPhase() {
+    const roles = RolesComponent.get(rolesEntity)
+    activeHiders = new Set(roles.hiders)
+    hiderHealth.clear()
+    for (const h of roles.hiders) hiderHealth.set(h, 10)
+    GameStateComponent.createOrReplace(gameEntity, { phase: 'playing' })
+    room.send('gamePhaseChanged', { phase: 'playing' })
+    console.log(`[Server] Playing phase — ${activeHiders.size} hiders`)
+
+    startTimer(
+      PLAYING_DURATION_S,
+      (s) => room.send('playingTimer', { secondsLeft: s, hidersLeft: activeHiders.size }),
+      () => endGame('hiders'),  // time ran out → hiders survived
+    )
+  }
+
+  function endGame(winner: 'shooters' | 'hiders') {
+    cancelTimer()
+    GameStateComponent.createOrReplace(gameEntity, { phase: 'results' })
+    room.send('gamePhaseChanged', { phase: 'results' })
+    room.send('gameResults', { winner })
+    console.log(`[Server] Game over — ${winner} win`)
+
+    startTimer(
+      RESULTS_DURATION_S,
+      (_) => {},
+      resetToLobby,
+    )
+  }
+
+  function resetToLobby() {
+    activeHiders = new Set()
+    hiderHealth.clear()
+    RolesComponent.createOrReplace(rolesEntity, { shooters: [], hiders: [] })
+    DisguisedPlayersComponent.createOrReplace(disguisedEntity, { disguises: [] })
+    GameStateComponent.createOrReplace(gameEntity, { phase: 'lobby' })
+    room.send('gamePhaseChanged', { phase: 'lobby' })
+    console.log('[Server] Lobby reset')
+  }
+
+  // --- Player tracking ---
+  engine.addSystem(() => {
     const current = new Set<string>()
     for (const [, identity] of engine.getEntitiesWith(PlayerIdentityData)) {
       current.add(identity.address.toLowerCase())
     }
+
+    // Joins
+    for (const addr of current) {
+      if (!connectedPlayers.has(addr)) {
+        connectedPlayers.add(addr)
+        console.log(`[Server] Player joined: ${addr} (${connectedPlayers.size} total)`)
+      }
+    }
+
+    // Disconnects
     for (const addr of connectedPlayers) {
       if (!current.has(addr)) {
         connectedPlayers.delete(addr)
+        console.log(`[Server] Player left: ${addr}`)
         onPlayerLeft(addr)
       }
     }
+
   })
 
-  function tryStartGame() {
-    const phase = GameStateComponent.get(gameEntity).phase
-    if (phase !== 'lobby') return
-    if (connectedPlayers.size < MIN_PLAYERS_TO_START) return
-
-    const roles = assignRoles([...connectedPlayers])
-    RolesComponent.createOrReplace(rolesEntity, roles)
-    GameStateComponent.createOrReplace(gameEntity, { phase: 'playing' })
-
-    room.send('rolesAssigned', roles)
-    room.send('gamePhaseChanged', { phase: 'playing' })
-    console.log(`[Server] Game started — shooters: ${roles.shooters}, hiders: ${roles.hiders}`)
-  }
-
   function onPlayerLeft(address: string) {
-    console.log(`[Server] Player left: ${address}`)
-    // Remove their disguise if any
-    const state = DisguisedPlayersComponent.getMutable(disguisedEntity)
-    const before = state.disguises.length
-    state.disguises = state.disguises.filter(d => d.address !== address)
-    if (state.disguises.length !== before) {
+    const phase = GameStateComponent.get(gameEntity).phase
+
+    // Remove disguise
+    const disguiseState = DisguisedPlayersComponent.getMutable(disguisedEntity)
+    const before = disguiseState.disguises.length
+    disguiseState.disguises = disguiseState.disguises.filter(d => d.address !== address)
+    if (disguiseState.disguises.length !== before) {
       room.send('playerUndisguised', { address })
     }
-    // If game is now under min players, reset to lobby
-    if (connectedPlayers.size < MIN_PLAYERS_TO_START) {
-      GameStateComponent.createOrReplace(gameEntity, { phase: 'lobby' })
-      RolesComponent.createOrReplace(rolesEntity, { shooters: [], hiders: [] })
-      DisguisedPlayersComponent.createOrReplace(disguisedEntity, { disguises: [] })
-      room.send('gamePhaseChanged', { phase: 'lobby' })
+
+    // During playing: remove from active hiders
+    if (phase === 'playing' && activeHiders.has(address)) {
+      activeHiders.delete(address)
+      if (activeHiders.size === 0) {
+        endGame('shooters')
+        return
+      }
+    }
+
+    // Drop below min players mid-game → reset
+    if (phase !== 'lobby' && phase !== 'results' && connectedPlayers.size < MIN_PLAYERS) {
+      cancelTimer()
+      resetToLobby()
     }
   }
 
-  // --- Client messages ---
+  // --- Client message handlers ---
+
   room.onMessage('selectProp', (data, context) => {
     if (!context) return
     const address = context.from.toLowerCase()
-    const phase = GameStateComponent.get(gameEntity).phase
-    if (phase !== 'playing') return
+    const phase   = GameStateComponent.get(gameEntity).phase
+    if (phase !== 'hiding' && phase !== 'playing') return
 
-    // Validate: must be a hider
     const roles = RolesComponent.get(rolesEntity)
     if (!roles.hiders.includes(address)) return
-
-    // Validate: must be a known prop
     if (!VALID_PROP_SRCS.has(data.propSrc)) return
 
-    const state = DisguisedPlayersComponent.getMutable(disguisedEntity)
+    const state    = DisguisedPlayersComponent.getMutable(disguisedEntity)
     const existing = state.disguises.findIndex(d => d.address === address)
     if (existing >= 0) {
       state.disguises[existing] = { address, propSrc: data.propSrc }
     } else {
       state.disguises.push({ address, propSrc: data.propSrc })
     }
-
     room.send('playerDisguised', { address, propSrc: data.propSrc })
-    console.log(`[Server] ${address} disguised as ${data.propSrc}`)
+  })
+
+  room.onMessage('undisguise', (_, context) => {
+    if (!context) return
+    const address = context.from.toLowerCase()
+    const state   = DisguisedPlayersComponent.getMutable(disguisedEntity)
+    const before  = state.disguises.length
+    state.disguises = state.disguises.filter(d => d.address !== address)
+    if (state.disguises.length !== before) {
+      room.send('playerUndisguised', { address })
+    }
   })
 
   room.onMessage('aimUpdate', (data, context) => {
     if (!context) return
-    const shooterAddr = context.from.toLowerCase()
+    const addr  = context.from.toLowerCase()
     const roles = RolesComponent.get(rolesEntity)
-    if (!roles.shooters.includes(shooterAddr)) return
-    room.send('shooterAim', { shooterAddress: shooterAddr, rx: data.rx, ry: data.ry, rz: data.rz, rw: data.rw })
+    if (!roles.shooters.includes(addr)) return
+    room.send('shooterAim', { shooterAddress: addr, rx: data.rx, ry: data.ry, rz: data.rz, rw: data.rw })
   })
 
   room.onMessage('fireShot', (data, context) => {
     if (!context) return
-    const shooterAddr = context.from.toLowerCase()
+    const addr  = context.from.toLowerCase()
     const roles = RolesComponent.get(rolesEntity)
-    if (!roles.shooters.includes(shooterAddr)) return
-    room.send('shotFired', { shooterAddress: shooterAddr, px: data.px, py: data.py, pz: data.pz, rx: data.rx, ry: data.ry, rz: data.rz, rw: data.rw })
+    if (!roles.shooters.includes(addr)) return
+    room.send('shotFired', { shooterAddress: addr, px: data.px, py: data.py, pz: data.pz, rx: data.rx, ry: data.ry, rz: data.rz, rw: data.rw })
   })
 
   room.onMessage('shoot', (data, context) => {
     if (!context) return
     const shooterAddr = context.from.toLowerCase()
     const targetAddr  = data.targetAddress.toLowerCase()
+    const phase       = GameStateComponent.get(gameEntity).phase
+    if (phase !== 'playing') return
+
     const roles = RolesComponent.get(rolesEntity)
     if (!roles.shooters.includes(shooterAddr)) return
-    if (!roles.hiders.includes(targetAddr)) return
-    console.log(`[Server] ${shooterAddr} hit ${targetAddr}`)
-    room.send('playerEliminated', { address: targetAddr })
-  })
+    if (!activeHiders.has(targetAddr)) return
 
-  room.onMessage('debugSwitchRole', (_, context) => {
-    if (!context) return
-    const address = context.from.toLowerCase()
-    const roles = RolesComponent.get(rolesEntity)
-    let shooters = [...roles.shooters]
-    let hiders   = [...roles.hiders]
+    const hp = (hiderHealth.get(targetAddr) ?? 1) - 1
+    hiderHealth.set(targetAddr, hp)
 
-    if (shooters.includes(address)) {
-      shooters = shooters.filter(a => a !== address)
-      hiders   = [...hiders, address]
-    } else if (hiders.includes(address)) {
-      hiders   = hiders.filter(a => a !== address)
-      shooters = [...shooters, address]
-    }
-
-    RolesComponent.createOrReplace(rolesEntity, { shooters, hiders })
-    room.send('rolesAssigned', { shooters, hiders })
-    console.log(`[Server] ${address} switched role — shooters: ${shooters}`)
-  })
-
-  room.onMessage('undisguise', (_, context) => {
-    if (!context) return
-    const address = context.from.toLowerCase()
-    const state = DisguisedPlayersComponent.getMutable(disguisedEntity)
-    const before = state.disguises.length
-    state.disguises = state.disguises.filter(d => d.address !== address)
-    if (state.disguises.length !== before) {
-      room.send('playerUndisguised', { address })
-      console.log(`[Server] ${address} went back to avatar`)
+    if (hp > 0) {
+      room.send('playerHit', { address: targetAddr, health: hp })
+      console.log(`[Server] ${shooterAddr} hit ${targetAddr} (${hp} HP left)`)
+    } else {
+      hiderHealth.delete(targetAddr)
+      activeHiders.delete(targetAddr)
+      room.send('playerEliminated', { address: targetAddr })
+      console.log(`[Server] ${shooterAddr} eliminated ${targetAddr} (${activeHiders.size} hiders left)`)
+      if (activeHiders.size === 0) endGame('shooters')
     }
   })
 
   room.onMessage('playerReady', (_, context) => {
     if (!context) return
     console.log(`[Server] playerReady from ${context.from}`)
-    tryStartGame()
+  })
+
+  room.onMessage('startGame', (_, context) => {
+    if (!context) return
+    const phase = GameStateComponent.get(gameEntity).phase
+    if (phase !== 'lobby') return
+    if (connectedPlayers.size < MIN_PLAYERS) return
+    console.log(`[Server] Game started by ${context.from}`)
+    startHidingPhase()
   })
 }

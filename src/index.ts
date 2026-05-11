@@ -19,4 +19,5 @@ export async function main() {
   initClient()
   setupUi()
   spawnProps()
+  await import('./client/waterTrigger')
 }

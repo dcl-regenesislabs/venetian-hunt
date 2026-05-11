@@ -1,4 +1,5 @@
 import { engine, Entity, GltfContainer, ColliderLayer, Transform, PlayerIdentityData, VisibilityComponent } from '@dcl/sdk/ecs'
+import { createHealthBar, removeHealthBar, clearAllHealthBars } from './hiderHealth'
 
 // World-space prop entities for OTHER disguised players (not local)
 const propsByAddress = new Map<string, Entity>()
@@ -34,6 +35,7 @@ export function onPlayerDisguised(address: string, propSrc: string) {
   // Position will be updated each frame by the system below
   Transform.create(entity, { position: { x: 0, y: -1000, z: 0 } })
   propsByAddress.set(normalized, entity)
+  createHealthBar(normalized, entity)
 }
 
 export function blinkPlayerProp(address: string) {
@@ -41,11 +43,20 @@ export function blinkPlayerProp(address: string) {
   if (entity) blinkEntity(entity)
 }
 
+export function clearAllProps() {
+  for (const [, entity] of propsByAddress) {
+    engine.removeEntity(entity)  // removes health bar children too
+  }
+  propsByAddress.clear()
+  clearAllHealthBars()
+}
+
 export function onPlayerUndisguised(address: string) {
   const entity = propsByAddress.get(address.toLowerCase())
   if (!entity) return
-  engine.removeEntity(entity)
+  engine.removeEntity(entity)  // also removes health bar children
   propsByAddress.delete(address.toLowerCase())
+  removeHealthBar(address.toLowerCase())
 }
 
 // ── Blink system ──────────────────────────────────────────────────

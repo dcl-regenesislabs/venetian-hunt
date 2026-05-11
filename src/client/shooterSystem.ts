@@ -18,6 +18,7 @@ type BulletData = { entity: Entity; vx: number; vy: number; vz: number; lifetime
 type VfxData    = { entity: Entity; lifetime: number }
 
 let shooterActive  = false
+let shooterPaused  = false
 let weaponEntity: Entity | undefined
 let fireCooldown   = 0
 let aimFrameTimer  = 0
@@ -31,7 +32,10 @@ export function getLastShotMs() { return lastShotMs }
 
 export function setWeaponEntity(e: Entity | undefined) { weaponEntity = e }
 
-export function activateShooter()  { shooterActive = true }
+export function pauseShooter()  { shooterPaused = true }
+export function resumeShooter() { shooterPaused = false }
+
+export function activateShooter()  { shooterActive = true; shooterPaused = false }
 export function deactivateShooter() {
   shooterActive = false
   for (const b of bullets) engine.removeEntity(b.entity)
@@ -41,7 +45,7 @@ export function deactivateShooter() {
 }
 
 engine.addSystem((dt: number) => {
-  if (!shooterActive) return
+  if (!shooterActive || shooterPaused) return
 
   if (fireCooldown > 0) fireCooldown -= dt
 
