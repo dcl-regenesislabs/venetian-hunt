@@ -12,7 +12,7 @@ import { room } from './shared/messages'
 import { addVisiblePlayer, removeVisiblePlayer } from './avatarHiding'
 import { Color4, Quaternion } from '@dcl/sdk/math'
 import { activateShooter, deactivateShooter, getLastShotMs, setWeaponEntity } from './client/shooterSystem'
-import { uiState } from './client/setup'
+import { uiState, startDebugCinematicPreview, stopDebugCinematicPreview, isDebugCinematicPreviewActive } from './client/setup'
 
 const WEAPON_SRC = 'assets/scene/Models/low-poly_agm-1.glb'
 
@@ -223,7 +223,7 @@ function LobbyPanel() {
   const canStart = count >= 2
   return (
     <UiEntity
-      uiTransform={{ width: 400, height: 240, flexDirection: 'column', alignItems: 'center', justifyContent: 'center', positionType: 'absolute', position: { top: '50%', left: '50%' }, margin: { top: -120, left: -200 } }}
+      uiTransform={{ width: 400, height: 360, flexDirection: 'column', alignItems: 'center', justifyContent: 'center', positionType: 'absolute', position: { top: '50%', left: '50%' }, margin: { top: -180, left: -200 } }}
       uiBackground={{ color: BG_DARK }}
     >
       <OutlinedLabel value="PROP HUNT" width={380} height={64} fontSize={48} color={YELLOW} />
@@ -239,6 +239,32 @@ function LobbyPanel() {
           textAlign="middle-center"
           fontSize={26}
           color={canStart ? BLACK : { r: 0.5, g: 0.5, b: 0.5, a: 1 }}
+        />
+      </UiEntity>
+      <UiEntity
+        uiTransform={{ width: 280, height: 46, alignItems: 'center', justifyContent: 'center', margin: { top: 14 } }}
+        uiBackground={{ color: GREEN }}
+        onMouseDown={() => startDebugCinematicPreview('hider')}
+      >
+        <Label
+          value="DEBUG PROP INTRO"
+          uiTransform={{ width: 280, height: 46 }}
+          textAlign="middle-center"
+          fontSize={22}
+          color={BLACK}
+        />
+      </UiEntity>
+      <UiEntity
+        uiTransform={{ width: 280, height: 46, alignItems: 'center', justifyContent: 'center', margin: { top: 10 } }}
+        uiBackground={{ color: RED }}
+        onMouseDown={() => startDebugCinematicPreview('shooter')}
+      >
+        <Label
+          value="DEBUG SHOOTER INTRO"
+          uiTransform={{ width: 280, height: 46 }}
+          textAlign="middle-center"
+          fontSize={22}
+          color={WHITE}
         />
       </UiEntity>
     </UiEntity>
@@ -356,13 +382,29 @@ function CinematicPanel() {
   const isHider  = playerRole === 'hider'
   const teamName = isHider ? 'PROPS' : 'HUNTERS'
   const color    = isHider ? GREEN : RED
+  const debugPreview = isDebugCinematicPreviewActive()
   return (
     <UiEntity
-      uiTransform={{ width: 600, height: 180, flexDirection: 'column', alignItems: 'center', justifyContent: 'center', positionType: 'absolute', position: { top: '50%', left: '50%' }, margin: { top: -90, left: -300 } }}
+      uiTransform={{ width: 600, height: debugPreview ? 260 : 180, flexDirection: 'column', alignItems: 'center', justifyContent: 'center', positionType: 'absolute', position: { top: '50%', left: '50%' }, margin: { top: debugPreview ? -130 : -90, left: -300 } }}
       uiBackground={{ color: BG_DARK }}
     >
       <OutlinedLabel value="GET READY!" width={580} height={80} fontSize={56} color={YELLOW} />
       <OutlinedLabel value={`You are on the ${teamName} team`} width={580} height={56} fontSize={30} marginTop={8} color={color} />
+      {debugPreview && (
+        <UiEntity
+          uiTransform={{ width: 260, height: 48, alignItems: 'center', justifyContent: 'center', margin: { top: 18 } }}
+          uiBackground={{ color: BG_PANEL }}
+          onMouseDown={() => stopDebugCinematicPreview()}
+        >
+          <Label
+            value="EXIT DEBUG PREVIEW"
+            uiTransform={{ width: 260, height: 48 }}
+            textAlign="middle-center"
+            fontSize={22}
+            color={WHITE}
+          />
+        </UiEntity>
+      )}
     </UiEntity>
   )
 }

@@ -1,4 +1,18 @@
-import { engine, PlayerIdentityData, VirtualCamera, MainCamera, InputModifier, Transform, Entity } from '@dcl/sdk/ecs'
+import {
+  engine,
+  PlayerIdentityData,
+  VirtualCamera,
+  MainCamera,
+  InputModifier,
+  Transform,
+  Entity,
+  MeshRenderer,
+  Material,
+  Billboard,
+  BillboardMode,
+  MaterialTransparencyMode
+} from '@dcl/sdk/ecs'
+import { Quaternion } from '@dcl/sdk/math'
 import { isStateSyncronized } from '@dcl/sdk/network'
 import { movePlayerTo } from '~system/RestrictedActions'
 import { room } from '../shared/messages'
@@ -17,11 +31,36 @@ const CINEMATIC_HIDER_POS   = { x: 37.25, y: 4.5, z: 7.0 }
 const CINEMATIC_SHOOTER_POS = { x: 50.0,  y: 4.5, z: 7.0 }
 const CINEMATIC_CAM_POS     = { x: 43.5,  y: 5.0, z: -3.0 }
 const CINEMATIC_LOOK_AT_POS = { x: 43.625, y: 3.0, z: 6.75 }
+const HIDER_LABEL_TEXTURE   = 'assets/images/team-prop.png'
+const SHOOTER_LABEL_TEXTURE = 'assets/images/team-shooter.png'
+const TEAM_LABEL_SCALE      = { x: 4.8, y: 1.85, z: 1 }
+const HIDER_LABEL_POS       = { x: 39.2, y: 6.6, z: 10.8 }
+const SHOOTER_LABEL_POS     = { x: 47.8, y: 6.6, z: 10.8 }
 
 let synced     = false
 let localRole: 'hider' | 'shooter' = 'hider'
 let cinematicCamEntity:    Entity | undefined
 let cinematicTargetEntity: Entity | undefined
+let hiderLabelEntity:      Entity | undefined
+let shooterLabelEntity:    Entity | undefined
+let debugCinematicPreviewActive = false
+
+function createTeamLabel(position: { x: number; y: number; z: number }, textureSrc: string) {
+  const entity = engine.addEntity()
+  Transform.create(entity, {
+    position,
+    rotation: Quaternion.fromEulerDegrees(90, 0, 0),
+    scale: TEAM_LABEL_SCALE
+  })
+  MeshRenderer.setPlane(entity)
+  Billboard.create(entity, { billboardMode: BillboardMode.BM_Y })
+  Material.setPbrMaterial(entity, {
+    texture: Material.Texture.Common({ src: textureSrc }),
+    transparencyMode: MaterialTransparencyMode.MTM_ALPHA_TEST,
+    alphaTest: 0.5
+  })
+  return entity
+}
 
 function startCinematic() {
   InputModifier.create(engine.PlayerEntity, {
@@ -41,6 +80,9 @@ function startCinematic() {
     defaultTransition: { transitionMode: VirtualCamera.Transition.Time(1.5) }
   })
   MainCamera.getMutable(engine.CameraEntity).virtualCameraEntity = cinematicCamEntity
+
+  hiderLabelEntity = createTeamLabel(HIDER_LABEL_POS, HIDER_LABEL_TEXTURE)
+  shooterLabelEntity = createTeamLabel(SHOOTER_LABEL_POS, SHOOTER_LABEL_TEXTURE)
 }
 
 function stopCinematic() {
@@ -55,9 +97,35 @@ function stopCinematic() {
     engine.removeEntity(cinematicTargetEntity)
     cinematicTargetEntity = undefined
   }
+  if (hiderLabelEntity !== undefined) {
+    engine.removeEntity(hiderLabelEntity)
+    hiderLabelEntity = undefined
+  }
+  if (shooterLabelEntity !== undefined) {
+    engine.removeEntity(shooterLabelEntity)
+    shooterLabelEntity = undefined
+  }
   if (InputModifier.has(engine.PlayerEntity)) {
     InputModifier.deleteFrom(engine.PlayerEntity)
   }
+}
+
+function resetClientToLobbyState() {
+  stopCinematic()
+  debugCinematicPreviewActive = false
+  resetVisibility()
+  clearShooterWeapons()
+  resetForLobby()
+  clearAllProps()
+  localRole                  = 'hider'
+  uiState.phase              = 'lobby'
+  uiState.hideSecondsLeft    = 0
+  uiState.playingSecondsLeft = 0
+  uiState.hidersLeft         = 0
+  uiState.winner             = ''
+  uiState.eliminated         = false
+  uiState.localHealth        = 10
+  movePlayerTo({ newRelativePosition: SPAWN })
 }
 
 // Shared UI state — read by ui.tsx every render frame
@@ -72,6 +140,20 @@ export const uiState = {
 }
 
 export function getCurrentPhase() { return uiState.phase }
+export function isDebugCinematicPreviewActive() { return debugCinematicPreviewActive }
+
+export function startDebugCinematicPreview(role: 'hider' | 'shooter') {
+  resetClientToLobbyState()
+  debugCinematicPreviewActive = true
+  localRole = role
+  uiState.phase = 'cinematic'
+  setPlayerRole(role, true)
+  startCinematic()
+}
+
+export function stopDebugCinematicPreview() {
+  resetClientToLobbyState()
+}
 
 export function initClient() {
   engine.addSystem(() => {
@@ -115,18 +197,7 @@ export function initClient() {
     }
 
     if (data.phase === 'lobby') {
-      stopCinematic()
-      resetVisibility()
-      clearShooterWeapons()
-      resetForLobby()
-      clearAllProps()
-      localRole                  = 'hider'
-      uiState.hideSecondsLeft    = 0
-      uiState.playingSecondsLeft = 0
-      uiState.winner             = ''
-      uiState.eliminated         = false
-      uiState.localHealth        = 10
-      movePlayerTo({ newRelativePosition: SPAWN })
+      resetClientToLobbyState()
     }
 
     if (data.phase === 'hiding') {
