@@ -68,6 +68,21 @@ export function updateShooterWeapons(shooterAddresses: string[], localAddress: s
   }
 }
 
+// World-space muzzle tip of the remote weapon model.
+// Derived from the transform hierarchy: root (aim rotation) → model child at MODEL_OFFSET + muzzle local (-0.6,0.1,0) rotated by MODEL_ROTATION(90°Y) = (0,0.1,0.6) → sum (0.2,1.0,0.7) in root space.
+export function getShooterMuzzleWorld(shooterAddress: string): { x: number; y: number; z: number } | null {
+  const entry = entriesByAddress.get(shooterAddress.toLowerCase())
+  if (!entry) return null
+  const root = Transform.getOrNull(entry.rootEntity)
+  if (!root) return null
+  const muzzleInRoot = Vector3.rotate(Vector3.create(0.2, 1.0, 0.7), root.rotation)
+  return {
+    x: root.position.x + muzzleInRoot.x,
+    y: root.position.y + muzzleInRoot.y,
+    z: root.position.z + muzzleInRoot.z,
+  }
+}
+
 export function clearShooterWeapons() {
   for (const entry of entriesByAddress.values()) {
     engine.removeEntity(entry.modelEntity)

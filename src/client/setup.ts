@@ -4,8 +4,8 @@ import { movePlayerTo } from '~system/RestrictedActions'
 import { room } from '../shared/messages'
 import { updateShooterIds, addVisiblePlayer, removeVisiblePlayer, resetVisibility } from '../avatarHiding'
 import { onPlayerDisguised, onPlayerUndisguised, blinkPlayerProp, clearAllProps } from './propSystem'
-import { updateShooterWeapons, clearShooterWeapons, updateShooterAim } from './shooterWeapons'
-import { spawnRemoteBullet } from './remoteBullets'
+import { updateShooterWeapons, clearShooterWeapons, updateShooterAim, getShooterMuzzleWorld } from './shooterWeapons'
+import { spawnRemoteBullet, spawnRemoteVfx } from './remoteBullets'
 import { setPlayerRole, blinkLocalProp, resetForLobby, clearLocalProp, reattachProp, createCinematicWeapon, removeCinematicWeapon } from '../ui'
 import { pauseShooter, resumeShooter } from './shooterSystem'
 import { playGunshotAt } from './audioManager'
@@ -245,7 +245,11 @@ export function initClient() {
     updateShooterAim(data.shooterAddress, data.rx, data.ry, data.rz, data.rw)
     const myAddress = PlayerIdentityData.getOrNull(engine.PlayerEntity)?.address?.toLowerCase()
     if (data.shooterAddress !== myAddress) {
-      spawnRemoteBullet({ x: data.px, y: data.py, z: data.pz }, { x: data.rx, y: data.ry, z: data.rz, w: data.rw })
+      const rot = { x: data.rx, y: data.ry, z: data.rz, w: data.rw }
+      const sentPos = { x: data.px, y: data.py, z: data.pz }
+      const vfxPos = getShooterMuzzleWorld(data.shooterAddress) ?? sentPos
+      spawnRemoteBullet(sentPos, rot)
+      spawnRemoteVfx(vfxPos, rot)
       playGunshotAt(data.px, data.py, data.pz)
     }
   })

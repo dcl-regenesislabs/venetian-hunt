@@ -1,6 +1,6 @@
 ﻿// Auto-generated from main.composite — do not edit by hand
-import { PRIMITIVE_CUBE, PRIMITIVE_CYLINDER } from './propUtils'
-export { PRIMITIVE_CUBE, PRIMITIVE_CYLINDER }
+import { PRIMITIVE_CYLINDER } from './propUtils'
+export { PRIMITIVE_CYLINDER }
 
 export type PropTransform = {
   position: { x: number; y: number; z: number }
@@ -74,9 +74,10 @@ export const PROP_SPAWN_POINTS: Record<string, PropTransform[]> = {
     { position: {x:38.5,y:4.5,z:24.5},  rotation: {x:0,y:0,z:0,w:1}, scale: {x:1,y:1,z:1} },
     { position: {x:19,y:4.5,z:38.25},   rotation: {x:0,y:0,z:0,w:1}, scale: {x:1,y:1,z:1} },
   ],
-  [PRIMITIVE_CUBE]: [
-    { position: {x:24,y:4.56,z:51.75},  rotation: {x:0,y:0,z:0,w:1},                              scale: {x:1,y:1,z:1} },
-    { position: {x:24,y:4.56,z:50.25},  rotation: {x:0,y:0.258819043636322,z:0,w:0.9659258127212524}, scale: {x:1,y:1,z:1} },
-    { position: {x:23.25,y:4.56,z:53.25},rotation:{x:0,y:0.258819043636322,z:0,w:0.9659258127212524}, scale: {x:1,y:1,z:1} },
+  "assets/asset-packs/square_cardboard_box/CardboardBox_02/CardboardBox_02.glb": [
+    { position: {x:24,y:4.050000190734863,z:50.25}, rotation: {x:0,y:0,z:0,w:1},                               scale: {x:1,y:1,z:1} },
+    { position: {x:24,y:4.050000190734863,z:52},    rotation: {x:0,y:-0.258819043636322,z:0,w:0.9659258127212524}, scale: {x:1,y:1,z:1} },
+    { position: {x:24,y:4.050000190734863,z:49},    rotation: {x:0,y:-0.258819043636322,z:0,w:0.9659258127212524}, scale: {x:1,y:1,z:1} },
+    { position: {x:23,y:4.050000190734863,z:51.5},  rotation: {x:0,y:-0.258819043636322,z:0,w:0.9659258127212524}, scale: {x:1,y:1,z:1} },
   ],
 }

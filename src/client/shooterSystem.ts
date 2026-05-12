@@ -126,7 +126,8 @@ function fireBullet() {
   })
   Transform.create(bulletEnt, {
     position: cam.position,
-    scale: { x: 0.05, y: 0.05, z: 0.05 },
+    rotation: cam.rotation,
+    scale: { x: 0.18, y: 0.18, z: 0.18 },
   })
   bullets.push({ entity: bulletEnt, vx: fwd.x * BULLET_SPEED, vy: fwd.y * BULLET_SPEED, vz: fwd.z * BULLET_SPEED, lifetime: BULLET_LIFE })
 

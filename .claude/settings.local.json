@@ -9,7 +9,8 @@
       "Read(//c/Users/Agustin/AppData/**)",
       "Bash(ls \"/c/Users/Agustin/AppData/Roaming/\" | grep -i \"decentraland\\\\|creator\\\\|dcl\" 2>/dev/null)",
       "Read(//c/Users/Agustin/AppData/Roaming//**)",
-      "Bash(python3 -c ' *)"
+      "Bash(python3 -c ' *)",
+      "Bash(node -e \"const p = require\\('./node_modules/@dcl/sdk/package.json'\\); console.log\\(p.version\\)\")"
     ]
   }
 }
