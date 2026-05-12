@@ -8,6 +8,7 @@ import { updateShooterWeapons, clearShooterWeapons, updateShooterAim } from './s
 import { spawnRemoteBullet } from './remoteBullets'
 import { setPlayerRole, blinkLocalProp, resetForLobby, clearLocalProp, reattachProp } from '../ui'
 import { pauseShooter, resumeShooter } from './shooterSystem'
+import { playGunshotAt } from './audioManager'
 import { onHiderHit } from './hiderHealth'
 
 const SPAWN        = { x: 43.5, y: 2.75, z: 4 }
@@ -218,6 +219,7 @@ export function initClient() {
     const myAddress = PlayerIdentityData.getOrNull(engine.PlayerEntity)?.address?.toLowerCase()
     if (data.shooterAddress !== myAddress) {
       spawnRemoteBullet({ x: data.px, y: data.py, z: data.pz }, { x: data.rx, y: data.ry, z: data.rz, w: data.rw })
+      playGunshotAt(data.px, data.py, data.pz)
     }
   })
 }

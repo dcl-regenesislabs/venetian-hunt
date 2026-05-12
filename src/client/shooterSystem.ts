@@ -5,6 +5,7 @@ import {
 } from '@dcl/sdk/ecs'
 import { Vector3, Quaternion } from '@dcl/sdk/math'
 import { room } from '../shared/messages'
+import { playGunshotAt } from './audioManager'
 
 const BULLET_SRC   = 'assets/scene/Models/Bullet.glb'
 const VFX_SRC      = 'assets/scene/Models/GunVFX.glb'
@@ -138,6 +139,7 @@ function fireBullet() {
     z: (player?.position.z ?? cam.position.z) + right.z * 0.45 + fwd.z * 0.35,
   }
   room.send('fireShot', { px: muzzle.x, py: muzzle.y, pz: muzzle.z, rx: cam.rotation.x, ry: cam.rotation.y, rz: cam.rotation.z, rw: cam.rotation.w })
+  playGunshotAt(muzzle.x, muzzle.y, muzzle.z)
 
   // — Muzzle flash VFX parented to weapon —
   if (weaponEntity !== undefined) {
