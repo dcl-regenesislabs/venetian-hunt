@@ -28,10 +28,11 @@ const PROPS = [
   { name: 'Avatar',         thumbnail: '',                                       src: '' },
 ]
 
-let selectedIndex = 0
-let propEntity:    Entity | undefined
-let weaponEntity:  Entity | undefined
-let camAreaEntity: Entity | undefined
+let selectedIndex    = 0
+let propEntity:      Entity | undefined
+let weaponEntity:    Entity | undefined
+let camAreaEntity:   Entity | undefined
+let cinematicWeapon: Entity | undefined
 let playerRole: 'hider' | 'shooter' = 'hider'
 
 export function blinkLocalProp() {
@@ -124,6 +125,29 @@ export function clearLocalProp() {
   }
   const myAddress = PlayerIdentityData.getOrNull(engine.PlayerEntity)?.address?.toLowerCase()
   if (myAddress) addVisiblePlayer(myAddress)
+}
+
+export function createCinematicWeapon() {
+  if (playerRole !== 'shooter' || cinematicWeapon !== undefined) return
+  cinematicWeapon = engine.addEntity()
+  GltfContainer.create(cinematicWeapon, {
+    src: WEAPON_SRC,
+    invisibleMeshesCollisionMask: ColliderLayer.CL_NONE,
+    visibleMeshesCollisionMask: ColliderLayer.CL_NONE,
+  })
+  Transform.create(cinematicWeapon, {
+    parent: engine.PlayerEntity,
+    position: { x: 0.4, y: 0.9, z: 0.1 },
+    rotation: Quaternion.fromEulerDegrees(0, -90, 0),
+    scale: { x: 0.02, y: 0.02, z: 0.02 },
+  })
+}
+
+export function removeCinematicWeapon() {
+  if (cinematicWeapon !== undefined) {
+    engine.removeEntity(cinematicWeapon)
+    cinematicWeapon = undefined
+  }
 }
 
 export function resetForLobby() {
@@ -220,21 +244,22 @@ function countConnectedPlayers(): number {
 
 function LobbyPanel() {
   const count    = countConnectedPlayers()
-  const canStart = count >= 2
+  const canStart = count >= 2 && count <= 6
+  const btnLabel = count < 2 ? 'Need 2+ players' : count > 6 ? 'Max 6 players' : 'START GAME'
   return (
     <UiEntity
       uiTransform={{ width: 400, height: 240, flexDirection: 'column', alignItems: 'center', justifyContent: 'center', positionType: 'absolute', position: { top: '50%', left: '50%' }, margin: { top: -120, left: -200 } }}
       uiBackground={{ color: BG_DARK }}
     >
       <OutlinedLabel value="PROP HUNT" width={380} height={64} fontSize={48} color={YELLOW} />
-      <OutlinedLabel value={`${count} player${count === 1 ? '' : 's'} connected`} width={380} height={36} fontSize={22} marginTop={8} />
+      <OutlinedLabel value={`${count} / 6 players`} width={380} height={36} fontSize={22} marginTop={8} />
       <UiEntity
         uiTransform={{ width: 280, height: 56, alignItems: 'center', justifyContent: 'center', margin: { top: 20 } }}
         uiBackground={{ color: canStart ? GREEN : BG_PANEL }}
         onMouseDown={() => { if (canStart) room.send('startGame', {}) }}
       >
         <Label
-          value={canStart ? 'START GAME' : 'Need 2+ players'}
+          value={btnLabel}
           uiTransform={{ width: 280, height: 56 }}
           textAlign="middle-center"
           fontSize={26}

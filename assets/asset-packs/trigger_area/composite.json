@@ -1,0 +1,34 @@
+{
+  "version": 1,
+  "components": [
+    {
+      "name": "asset-packs::Placeholder",
+      "data": {
+        "0": {
+          "json": {
+            "src": "{assetPath}/trigger_area.glb"
+          }
+        }
+      }
+    },
+    {
+      "name": "asset-packs::Triggers",
+      "data": {
+        "0": {
+          "json": {
+            "value": [
+              {
+                "type": "on_player_enters_area",
+                "actions": []
+              },
+              {
+                "type": "on_player_leaves_area",
+                "actions": []
+              }
+            ]
+          }
+        }
+      }
+    }
+  ]
+}

@@ -6,21 +6,31 @@ import { updateShooterIds, addVisiblePlayer, removeVisiblePlayer, resetVisibilit
 import { onPlayerDisguised, onPlayerUndisguised, blinkPlayerProp, clearAllProps } from './propSystem'
 import { updateShooterWeapons, clearShooterWeapons, updateShooterAim } from './shooterWeapons'
 import { spawnRemoteBullet } from './remoteBullets'
-import { setPlayerRole, blinkLocalProp, resetForLobby, clearLocalProp, reattachProp } from '../ui'
+import { setPlayerRole, blinkLocalProp, resetForLobby, clearLocalProp, reattachProp, createCinematicWeapon, removeCinematicWeapon } from '../ui'
 import { pauseShooter, resumeShooter } from './shooterSystem'
 import { playGunshotAt } from './audioManager'
 import { onHiderHit } from './hiderHealth'
 
-const SPAWN        = { x: 43.5, y: 2.75, z: 4 }
-const HIDER_SPAWN  = { x: 47.1, y: 5,    z: 56.4 }
+const SPAWN       = { x: 43.5, y: 2.75, z: 4 }
+const HIDER_SPAWN = { x: 47.1, y: 5,    z: 56.4 }
 
-const CINEMATIC_HIDER_POS   = { x: 37.25, y: 4.5, z: 7.0 }
-const CINEMATIC_SHOOTER_POS = { x: 50.0,  y: 4.5, z: 7.0 }
-const CINEMATIC_CAM_POS     = { x: 43.5,  y: 5.0, z: -3.0 }
-const CINEMATIC_LOOK_AT_POS = { x: 43.625, y: 3.0, z: 6.75 }
+// center, left, right slots — world positions computed from composite (boat scale 1.2, no rotation)
+const HIDER_SLOTS = [
+  { x: 37.65, y: 2.40, z: 6.75 },  // center
+  { x: 36.00, y: 2.50, z: 6.75 },  // left
+  { x: 39.00, y: 2.50, z: 6.75 },  // right
+]
+const SHOOTER_SLOTS = [
+  { x: 50.45, y: 2.40, z: 6.75 },  // center
+  { x: 48.80, y: 2.50, z: 6.75 },  // left
+  { x: 51.80, y: 2.50, z: 6.75 },  // right
+]
+const CINEMATIC_CAM_POS     = { x: 43.5,   y: 5.0, z: -3.0  }
+const CINEMATIC_LOOK_AT_POS = { x: 43.625, y: 3.0, z: 6.75  }
 
-let synced     = false
+let synced             = false
 let localRole: 'hider' | 'shooter' = 'hider'
+let cinematicSlotIndex = 0
 let cinematicCamEntity:    Entity | undefined
 let cinematicTargetEntity: Entity | undefined
 
@@ -29,7 +39,8 @@ function startCinematic() {
     mode: InputModifier.Mode.Standard({ disableAll: true })
   })
 
-  const dest = localRole === 'hider' ? CINEMATIC_HIDER_POS : CINEMATIC_SHOOTER_POS
+  const slots = localRole === 'hider' ? HIDER_SLOTS : SHOOTER_SLOTS
+  const dest  = slots[cinematicSlotIndex] ?? slots[0]
   movePlayerTo({ newRelativePosition: dest, cameraTarget: CINEMATIC_CAM_POS })
 
   cinematicTargetEntity = engine.addEntity()
@@ -42,6 +53,8 @@ function startCinematic() {
     defaultTransition: { transitionMode: VirtualCamera.Transition.Time(1.5) }
   })
   MainCamera.getMutable(engine.CameraEntity).virtualCameraEntity = cinematicCamEntity
+
+  createCinematicWeapon()
 }
 
 function stopCinematic() {
@@ -59,6 +72,7 @@ function stopCinematic() {
   if (InputModifier.has(engine.PlayerEntity)) {
     InputModifier.deleteFrom(engine.PlayerEntity)
   }
+  removeCinematicWeapon()
 }
 
 // Shared UI state — read by ui.tsx every render frame
@@ -100,6 +114,11 @@ export function initClient() {
     localRole      = isHider ? 'hider' : 'shooter'
     uiState.hidersLeft = data.hiders.length
 
+    // Determine boat slot index (0=center, 1=left, 2=right) based on position in team list
+    const myTeam = isHider ? data.hiders : data.shooters
+    const myIdx  = myAddress ? myTeam.findIndex((a: string) => a.toLowerCase() === myAddress) : 0
+    cinematicSlotIndex = Math.max(0, myIdx) % 3
+
     uiState.localHealth = 10
     // skipProp=true: during cinematic hiders appear as avatars; prop is attached when hiding starts
     setPlayerRole(localRole, true)
@@ -122,6 +141,7 @@ export function initClient() {
       resetForLobby()
       clearAllProps()
       localRole                  = 'hider'
+      cinematicSlotIndex         = 0
       uiState.hideSecondsLeft    = 0
       uiState.playingSecondsLeft = 0
       uiState.winner             = ''

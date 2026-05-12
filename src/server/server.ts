@@ -6,15 +6,17 @@ import { PROP_SPAWN_POINTS } from '../propSpawnPoints'
 
 const VALID_PROP_SRCS      = new Set(Object.keys(PROP_SPAWN_POINTS))
 const MIN_PLAYERS          = 2
+const MAX_PLAYERS          = 6  // 3 per boat
 const CINEMATIC_DURATION_S = 15
 const HIDING_DURATION_S    = 30
 const PLAYING_DURATION_S   = 180  // 3 minutes
 const RESULTS_DURATION_S   = 8
 
-// 1 shooter per ~2 hiders, minimum 1
+// floor(n/2) shooters — odd remainder always goes to hiders (shooters always at disadvantage)
 function assignRoles(addresses: string[]): { shooters: string[]; hiders: string[] } {
-  const shuffled     = [...addresses].sort(() => Math.random() - 0.5)
-  const shooterCount = Math.max(1, Math.round(addresses.length / 3))
+  const capped       = addresses.slice(0, MAX_PLAYERS)
+  const shuffled     = [...capped].sort(() => Math.random() - 0.5)
+  const shooterCount = Math.max(1, Math.floor(capped.length / 2))
   return {
     shooters: shuffled.slice(0, shooterCount),
     hiders:   shuffled.slice(shooterCount),
@@ -281,7 +283,7 @@ export function initServer() {
     if (!context) return
     const phase = GameStateComponent.get(gameEntity).phase
     if (phase !== 'lobby') return
-    if (connectedPlayers.size < MIN_PLAYERS) return
+    if (connectedPlayers.size < MIN_PLAYERS || connectedPlayers.size > MAX_PLAYERS) return
     console.log(`[Server] Game started by ${context.from}`)
     startCinematicPhase()
   })
