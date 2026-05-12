@@ -6,6 +6,7 @@ import {
   PlayerIdentityData, CameraModeArea, CameraType,
   Entity
 } from '@dcl/sdk/ecs'
+import { applyPropComponents, primitiveDisguiseTransform, PRIMITIVE_CUBE, PRIMITIVE_CYLINDER } from './propUtils'
 import { blinkEntity, stopBlinkingEntity } from './client/propSystem'
 import { getUserData } from '~system/UserIdentity'
 import { room } from './shared/messages'
@@ -18,14 +19,16 @@ const WEAPON_SRC = 'assets/scene/Models/low-poly_agm-1.glb'
 
 const PROPS = [
   { name: 'Chair',          thumbnail: 'assets/images/props/chair.png',        src: 'assets/asset-packs/outdoor_chair/Chair_07.glb' },
-  { name: 'Bicycle',        thumbnail: 'assets/images/props/bicycle.png',       src: 'assets/asset-packs/blue_bicycle/Bicycle_02/Bicycle_02.glb' },
-  { name: 'Lamp Post',      thumbnail: 'assets/images/props/lamppost.png',      src: 'assets/asset-packs/traditional_lamp_post/LampPost_02/LampPost_02.glb' },
-  { name: 'Clay Pot',       thumbnail: 'assets/images/props/pot.png',           src: 'assets/asset-packs/clay_pot/Pot_01/Pot_01.glb' },
-  { name: 'Bird Fountain',  thumbnail: 'assets/images/props/birdfountain.png',  src: 'assets/asset-packs/bird_fountain/BirdFountain_01/BirdFountain_01.glb' },
-  { name: 'Umbrella Table', thumbnail: 'assets/images/props/table.png',         src: 'assets/asset-packs/umbrella_table/TableBar_01/TableBar_01.glb' },
-  { name: 'Fern Pot',       thumbnail: 'assets/images/props/fernpot.png',       src: 'assets/asset-packs/planted_fern/PlantPot_03/PlantPot_03.glb' },
-  { name: 'Fountain',       thumbnail: 'assets/images/props/fountain.png',      src: 'assets/asset-packs/the_lonely_fountain/Fountain_03/Fountain_03.glb' },
-  { name: 'Avatar',         thumbnail: '',                                       src: '' },
+  { name: 'Blue Bicycle',   thumbnail: 'assets/images/props/bicycle.png',      src: 'assets/asset-packs/blue_bicycle/Bicycle_02/Bicycle_02.glb' },
+  { name: 'Red Bicycle',    thumbnail: 'assets/images/props/bicycle.png',      src: 'assets/asset-packs/red_bicycle/Bicycle_01/Bicycle_01.glb' },
+  { name: 'Lamp Post',      thumbnail: 'assets/images/props/lamppost.png',     src: 'assets/asset-packs/traditional_lamp_post/LampPost_02/LampPost_02.glb' },
+  { name: 'Clay Pot',       thumbnail: 'assets/images/props/pot.png',          src: 'assets/asset-packs/clay_pot/Pot_01/Pot_01.glb' },
+  { name: 'Bird Fountain',  thumbnail: 'assets/images/props/birdfountain.png', src: 'assets/asset-packs/bird_fountain/BirdFountain_01/BirdFountain_01.glb' },
+  { name: 'Umbrella Table', thumbnail: 'assets/images/props/table.png',        src: 'assets/asset-packs/umbrella_table/TableBar_01/TableBar_01.glb' },
+  { name: 'Fern Pot',       thumbnail: 'assets/images/props/fernpot.png',      src: 'assets/asset-packs/planted_fern/PlantPot_03/PlantPot_03.glb' },
+  { name: 'Cylinder',       thumbnail: '',                                      src: PRIMITIVE_CYLINDER },
+  { name: 'Cube',           thumbnail: '',                                      src: PRIMITIVE_CUBE },
+  { name: 'Avatar',         thumbnail: '',                                      src: '' },
 ]
 
 let selectedIndex    = 0
@@ -58,15 +61,12 @@ function attachProp(src: string) {
   if (myAddress) removeVisiblePlayer(myAddress)
   room.send('selectProp', { propSrc: src })
   propEntity = engine.addEntity()
-  GltfContainer.create(propEntity, {
-    src,
-    invisibleMeshesCollisionMask: ColliderLayer.CL_NONE,
-    visibleMeshesCollisionMask: ColliderLayer.CL_NONE,
-  })
+  applyPropComponents(propEntity, src, true)
+  const prim = primitiveDisguiseTransform(src)
   Transform.create(propEntity, {
     parent: engine.PlayerEntity,
-    position: { x: 0, y: -0.1, z: 0 },
-    scale: { x: 1, y: 1, z: 1 }
+    position: { x: 0, y: prim ? prim.y : -0.1, z: 0 },
+    scale:    prim ? prim.scale : { x: 1, y: 1, z: 1 },
   })
   VisibilityComponent.createOrReplace(propEntity, { visible: true })
 }
@@ -284,17 +284,10 @@ function HidingPanelHider() {
 
       {/* Bottom: prop selector */}
       <UiEntity
-        uiTransform={{ width: 440, height: 140, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: { left: 16, right: 16 } }}
-        uiBackground={{ color: BG_PANEL }}
+        uiTransform={{ width: 440, height: 80, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: { left: 16, right: 16 } }}
       >
         <OutlinedLabel value="◄  E" width={72} height={72} fontSize={26} />
-        <UiEntity uiTransform={{ flexDirection: 'column', alignItems: 'center' }}>
-          <UiEntity
-            uiTransform={{ width: 120, height: prop.src === '' ? 200 : 120 }}
-            uiBackground={{ texture: { src: prop.thumbnail }, textureMode: 'stretch' }}
-          />
-          <OutlinedLabel value={prop.name.toUpperCase()} width={200} height={32} fontSize={20} marginTop={6} />
-        </UiEntity>
+        <OutlinedLabel value={prop.name.toUpperCase()} width={200} height={32} fontSize={20} />
         <OutlinedLabel value="F  ►" width={72} height={72} fontSize={26} />
       </UiEntity>
     </UiEntity>
@@ -347,17 +340,10 @@ function PlayingHUD() {
       {playerRole === 'hider' && !uiState.eliminated && (
         <UiEntity uiTransform={{ width: '100%', flexDirection: 'row', alignItems: 'flex-end', justifyContent: 'center', positionType: 'absolute', position: { bottom: 64 } }}>
           <UiEntity
-            uiTransform={{ width: 440, height: 140, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: { left: 16, right: 16 } }}
-            uiBackground={{ color: BG_PANEL }}
+            uiTransform={{ width: 440, height: 80, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: { left: 16, right: 16 } }}
           >
             <OutlinedLabel value="◄  E" width={72} height={72} fontSize={26} />
-            <UiEntity uiTransform={{ flexDirection: 'column', alignItems: 'center' }}>
-              <UiEntity
-                uiTransform={{ width: 120, height: PROPS[selectedIndex].src === '' ? 200 : 120 }}
-                uiBackground={{ texture: { src: PROPS[selectedIndex].thumbnail }, textureMode: 'stretch' }}
-              />
-              <OutlinedLabel value={PROPS[selectedIndex].name.toUpperCase()} width={200} height={32} fontSize={20} marginTop={6} />
-            </UiEntity>
+            <OutlinedLabel value={PROPS[selectedIndex].name.toUpperCase()} width={200} height={32} fontSize={20} />
             <OutlinedLabel value="F  ►" width={72} height={72} fontSize={26} />
           </UiEntity>
         </UiEntity>

@@ -5,12 +5,6 @@
  * Object containing all entity names in the scene for autocomplete support.
  */
 export enum EntityNames {
-  Cube = "Cube",
-  Cylinder_3 = "Cylinder_3",
-  Cylinder_4 = "Cylinder_4",
-  Cylinder_5 = "Cylinder_5",
-  Cylinder_6 = "Cylinder_6",
-  Cylinder_7 = "Cylinder_7",
   Iron_Fence_Door = "Iron Fence Door",
   Iron_Fence_Door_2 = "Iron Fence Door_2",
   Iron_Fence_Door_3 = "Iron Fence Door_3",
@@ -31,7 +25,6 @@ export enum EntityNames {
   Medium_Straight_Old_Dock_Module_7 = "Medium Straight Old Dock Module_7",
   Rowboat = "Rowboat",
   Rowboat_2 = "Rowboat_2",
-  Rowboat_3 = "Rowboat_3",
   Stick = "Stick",
   center = "center",
   center_2 = "center_2",

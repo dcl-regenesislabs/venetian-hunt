@@ -24,6 +24,7 @@ export const room = registerMessages({
 
   // Server → Client: game phases & timers
   gamePhaseChanged: Schemas.Map({ phase: Schemas.String }),  // 'lobby' | 'hiding' | 'playing' | 'results'
+  propsSpawned:     Schemas.Map({ seed: Schemas.Number }),
   hideCountdown:    Schemas.Map({ seconds: Schemas.Number }),
   playingTimer:     Schemas.Map({ secondsLeft: Schemas.Number, hidersLeft: Schemas.Number }),
   gameResults:      Schemas.Map({ winner: Schemas.String }),  // 'shooters' | 'hiders'

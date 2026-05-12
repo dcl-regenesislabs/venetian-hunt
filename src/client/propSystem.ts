@@ -1,8 +1,10 @@
-import { engine, Entity, GltfContainer, ColliderLayer, Transform, PlayerIdentityData, VisibilityComponent } from '@dcl/sdk/ecs'
+import { engine, Entity, Transform, PlayerIdentityData, VisibilityComponent } from '@dcl/sdk/ecs'
+import { applyPropComponents, primitiveDisguiseTransform } from '../propUtils'
 import { createHealthBar, removeHealthBar, clearAllHealthBars } from './hiderHealth'
 
 // World-space prop entities for OTHER disguised players (not local)
-const propsByAddress = new Map<string, Entity>()
+const propsByAddress  = new Map<string, Entity>()
+const propYOffset     = new Map<string, number>()  // extra y for primitive center offset
 
 function getPlayerWorldPosition(address: string): { x: number; y: number; z: number } | null {
   const normalized = address.toLowerCase()
@@ -27,15 +29,15 @@ export function onPlayerDisguised(address: string, propSrc: string) {
   onPlayerUndisguised(normalized)
 
   const entity = engine.addEntity()
-  GltfContainer.create(entity, {
-    src: propSrc,
-    invisibleMeshesCollisionMask: ColliderLayer.CL_NONE,
-    visibleMeshesCollisionMask: ColliderLayer.CL_NONE,
+  applyPropComponents(entity, propSrc, true)
+  const prim = primitiveDisguiseTransform(propSrc)
+  Transform.create(entity, {
+    position: { x: 0, y: prim ? prim.y - 1000 : -1000, z: 0 },
+    scale:    prim ? prim.scale : { x: 1, y: 1, z: 1 },
   })
-  // Position will be updated each frame by the system below
-  Transform.create(entity, { position: { x: 0, y: -1000, z: 0 } })
   VisibilityComponent.createOrReplace(entity, { visible: true })
   propsByAddress.set(normalized, entity)
+  propYOffset.set(normalized, prim ? prim.y : 0)
   createHealthBar(normalized, entity)
 }
 
@@ -47,9 +49,10 @@ export function blinkPlayerProp(address: string) {
 export function clearAllProps() {
   for (const [, entity] of propsByAddress) {
     stopBlinkingEntity(entity)
-    engine.removeEntity(entity)  // removes health bar children too
+    engine.removeEntity(entity)
   }
   propsByAddress.clear()
+  propYOffset.clear()
   clearAllHealthBars()
 }
 
@@ -57,8 +60,9 @@ export function onPlayerUndisguised(address: string) {
   const entity = propsByAddress.get(address.toLowerCase())
   if (!entity) return
   stopBlinkingEntity(entity)
-  engine.removeEntity(entity)  // also removes health bar children
+  engine.removeEntity(entity)
   propsByAddress.delete(address.toLowerCase())
+  propYOffset.delete(address.toLowerCase())
   removeHealthBar(address.toLowerCase())
 }
 
@@ -100,14 +104,11 @@ engine.addSystem((dt: number) => {
 })
 
 // ── World-space props ─────────────────────────────────────────────
-// DCL's physics capsule keeps the player root slightly above the visual floor.
-// Subtract this offset so world-space props sit on the ground.
-const PHYSICS_FLOOR_OFFSET = 0.1
-
 engine.addSystem(() => {
   for (const [address, entity] of propsByAddress) {
     const pos = getPlayerWorldPosition(address)
     if (!pos) continue
-    Transform.getMutable(entity).position = { x: pos.x, y: pos.y - PHYSICS_FLOOR_OFFSET, z: pos.z }
+    const yOff = propYOffset.get(address) ?? 0
+    Transform.getMutable(entity).position = { x: pos.x, y: pos.y + yOff, z: pos.z }
   }
 })

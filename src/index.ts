@@ -13,11 +13,8 @@ export async function main() {
   const { initClient } = await import('./client/setup')
   const { setupUi } = await import('./ui')
   const { setupAvatarHiding } = await import('./avatarHiding')
-  const { spawnProps } = await import('./props')
-
   setupAvatarHiding()
   initClient()
   setupUi()
-  spawnProps()
   await import('./client/waterTrigger')
 }

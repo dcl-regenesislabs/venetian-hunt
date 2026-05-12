@@ -4,7 +4,12 @@
       "Bash(npx skills *)",
       "Bash(node -e ' *)",
       "Bash(npm run *)",
-      "Bash(npx tsc *)"
+      "Bash(npx tsc *)",
+      "Bash(find \"/c/Users/Agustin/AppData\" -name \"*.crdt\" -o -name \"*.composite\" 2>/dev/null | head -20)",
+      "Read(//c/Users/Agustin/AppData/**)",
+      "Bash(ls \"/c/Users/Agustin/AppData/Roaming/\" | grep -i \"decentraland\\\\|creator\\\\|dcl\" 2>/dev/null)",
+      "Read(//c/Users/Agustin/AppData/Roaming//**)",
+      "Bash(python3 -c ' *)"
     ]
   }
 }

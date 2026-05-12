@@ -97,6 +97,7 @@ export function initServer() {
   function startHidingPhase() {
     GameStateComponent.createOrReplace(gameEntity, { phase: 'hiding' })
     room.send('gamePhaseChanged', { phase: 'hiding' })
+    room.send('propsSpawned', { seed: Math.floor(Math.random() * 1e6) })
     console.log('[Server] Hiding phase started')
 
     startTimer(

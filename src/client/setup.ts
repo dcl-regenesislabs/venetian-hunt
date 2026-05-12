@@ -10,6 +10,7 @@ import { setPlayerRole, blinkLocalProp, resetForLobby, clearLocalProp, reattachP
 import { pauseShooter, resumeShooter } from './shooterSystem'
 import { playGunshotAt } from './audioManager'
 import { onHiderHit } from './hiderHealth'
+import { spawnRandomProps, clearProps } from '../props'
 
 const SPAWN       = { x: 43.5, y: 2.75, z: 4 }
 const HIDER_SPAWN = { x: 47.1, y: 5,    z: 56.4 }
@@ -140,6 +141,7 @@ export function initClient() {
       clearShooterWeapons()
       resetForLobby()
       clearAllProps()
+      clearProps()
       localRole                  = 'hider'
       cinematicSlotIndex         = 0
       uiState.hideSecondsLeft    = 0
@@ -173,6 +175,11 @@ export function initClient() {
     if (data.phase === 'results') {
       stopCinematic()
     }
+  })
+
+  // --- Props ---
+  room.onMessage('propsSpawned', (data) => {
+    spawnRandomProps(data.seed)
   })
 
   // --- Timers ---
