@@ -6,7 +6,7 @@ import { updateShooterIds, addVisiblePlayer, removeVisiblePlayer, resetVisibilit
 import { onPlayerDisguised, onPlayerUndisguised, blinkPlayerProp, clearAllProps } from './propSystem'
 import { updateShooterWeapons, clearShooterWeapons, updateShooterAim, getShooterMuzzleWorld } from './shooterWeapons'
 import { spawnRemoteBullet, spawnRemoteVfx } from './remoteBullets'
-import { setPlayerRole, blinkLocalProp, resetForLobby, clearLocalProp, reattachProp, createCinematicWeapon, removeCinematicWeapon } from '../ui'
+import { setPlayerRole, blinkLocalProp, resetForLobby, clearLocalProp, reattachProp, createCinematicWeapon, removeCinematicWeapon, showRoleArrow, hideRoleArrow } from '../ui'
 import { pauseShooter, resumeShooter } from './shooterSystem'
 import { playGunshotAt } from './audioManager'
 import { onHiderHit } from './hiderHealth'
@@ -56,6 +56,7 @@ function startCinematic() {
   MainCamera.getMutable(engine.CameraEntity).virtualCameraEntity = cinematicCamEntity
 
   createCinematicWeapon()
+  showRoleArrow(localRole)
 }
 
 function stopCinematic() {
@@ -74,6 +75,7 @@ function stopCinematic() {
     InputModifier.deleteFrom(engine.PlayerEntity)
   }
   removeCinematicWeapon()
+  hideRoleArrow()
 }
 
 // Shared UI state — read by ui.tsx every render frame

@@ -15,7 +15,9 @@ import { Color4, Quaternion } from '@dcl/sdk/math'
 import { activateShooter, deactivateShooter, getLastShotMs, setWeaponEntity } from './client/shooterSystem'
 import { uiState } from './client/setup'
 
-const WEAPON_SRC = 'assets/scene/Models/low-poly_agm-1.glb'
+const WEAPON_SRC  = 'assets/scene/Models/low-poly_agm-1.glb'
+const ARROW_GREEN = 'assets/asset-packs/arrow_green/arrow-green.glb'
+const ARROW_RED   = 'assets/asset-packs/arrow/arrow.glb'
 
 const PROPS = [
   { name: 'Chair',          thumbnail: 'assets/images/props/chair.png',        src: 'assets/asset-packs/outdoor_chair/Chair_07.glb' },
@@ -36,7 +38,8 @@ let propEntity:      Entity | undefined
 let weaponEntity:    Entity | undefined
 let camAreaEntity:   Entity | undefined
 let cinematicWeapon: Entity | undefined
-let playerRole: 'hider' | 'shooter' = 'hider' 
+let roleArrowEntity: Entity | undefined
+let playerRole: 'hider' | 'shooter' = 'hider'
 
 // ── Debug mode ────────────────────────────────────────────────────
 // Set DEBUG = true to preview UI panels in-world without playing.
@@ -155,6 +158,28 @@ export function removeCinematicWeapon() {
   if (cinematicWeapon !== undefined) {
     engine.removeEntity(cinematicWeapon)
     cinematicWeapon = undefined
+  }
+}
+
+export function showRoleArrow(role: 'hider' | 'shooter') {
+  hideRoleArrow()
+  roleArrowEntity = engine.addEntity()
+  GltfContainer.create(roleArrowEntity, {
+    src: role === 'hider' ? ARROW_GREEN : ARROW_RED,
+    invisibleMeshesCollisionMask: ColliderLayer.CL_NONE,
+    visibleMeshesCollisionMask:   ColliderLayer.CL_NONE,
+  })
+  Transform.create(roleArrowEntity, {
+    parent:   engine.PlayerEntity,
+    position: { x: 0, y: 2.2, z: 0 },
+    scale:    { x: 1, y: 1, z: 1 },
+  })
+}
+
+export function hideRoleArrow() {
+  if (roleArrowEntity !== undefined) {
+    engine.removeEntity(roleArrowEntity)
+    roleArrowEntity = undefined
   }
 }
 
@@ -336,81 +361,115 @@ function LobbyPanel() {
   )
 }
 
+function timerColor(secs: number): Color4 {
+  if (secs > 15) return GREEN
+  if (secs > 8)  return YELLOW
+  return RED
+}
+
 function HidingPanelHider() {
-  const prop = PROPS[selectedIndex]
+  const prop  = PROPS[selectedIndex]
+  const secs  = uiState.hideSecondsLeft
+  const tCol  = timerColor(secs)
   return (
     <UiEntity uiTransform={{ width: '100%', height: '100%', flexDirection: 'column', alignItems: 'center', justifyContent: 'space-between', padding: { top: 24, bottom: 64 } }}>
-      {/* Top banner */}
+      {/* Top countdown card */}
       <UiEntity
-        uiTransform={{ width: 420, height: 72, alignItems: 'center', justifyContent: 'center' }}
+        uiTransform={{ width: 440, flexDirection: 'column', alignItems: 'center', padding: { top: 14, bottom: 14 }, borderRadius: 12 }}
         uiBackground={{ color: BG_DARK }}
       >
-        <OutlinedLabel value={`HIDE!  ${uiState.hideSecondsLeft}s`} width={400} height={60} fontSize={38} color={GREEN} />
+        <OutlinedLabel value={`HIDE!  ${secs}s`} width={400} height={52} fontSize={42} color={tCol} />
+        <OutlinedLabel value="Find the perfect spot to blend in!" width={400} height={26} fontSize={16} marginTop={6} />
       </UiEntity>
 
       {/* Bottom: prop selector */}
       <UiEntity
-        uiTransform={{ width: 440, height: 80, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: { left: 16, right: 16 } }}
+        uiTransform={{ width: 440, height: 64, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: { left: 16, right: 16 }, borderRadius: 12 }}
+        uiBackground={{ color: BG_PANEL }}
       >
-        <OutlinedLabel value="◄  E" width={72} height={72} fontSize={26} />
+        <OutlinedLabel value="◄  E" width={72} height={52} fontSize={26} />
         <OutlinedLabel value={prop.name.toUpperCase()} width={200} height={32} fontSize={20} />
-        <OutlinedLabel value="F  ►" width={72} height={72} fontSize={26} />
+        <OutlinedLabel value="F  ►" width={72} height={52} fontSize={26} />
       </UiEntity>
     </UiEntity>
   )
 }
 
 function HidingPanelShooter() {
+  const secs = uiState.hideSecondsLeft
+  const tCol = timerColor(secs)
   return (
     <UiEntity
-      uiTransform={{ width: 520, height: 88, flexDirection: 'column', alignItems: 'center', justifyContent: 'center', positionType: 'absolute', position: { top: 24, left: '50%' }, margin: { left: -260 } }}
+      uiTransform={{ width: 460, flexDirection: 'column', alignItems: 'center', positionType: 'absolute', position: { top: 24, left: '50%' }, margin: { left: -230 }, borderRadius: 12 }}
       uiBackground={{ color: BG_DARK }}
     >
-      <OutlinedLabel value={`HUNTERS WAIT  —  ${uiState.hideSecondsLeft}s`} width={500} height={50} fontSize={32} color={RED} />
-      <OutlinedLabel value="Hiders are hiding..." width={500} height={32} fontSize={20} marginTop={4} />
+      {/* Red header */}
+      <UiEntity
+        uiTransform={{ width: 460, height: 52, alignItems: 'center', justifyContent: 'center', borderRadius: 12 }}
+        uiBackground={{ color: { r: 0.45, g: 0.06, b: 0.06, a: 1 } }}
+      >
+        <OutlinedLabel value="HUNTER — WAITING" width={420} height={44} fontSize={26} color={WHITE} />
+      </UiEntity>
+      {/* Timer row */}
+      <UiEntity
+        uiTransform={{ width: 420, height: 44, flexDirection: 'row', alignItems: 'center', justifyContent: 'center' }}
+      >
+        <OutlinedLabel value="Hiders are hiding...  " width={260} height={36} fontSize={18} color={{ r: 0.65, g: 0.65, b: 0.65, a: 1 }} />
+        <OutlinedLabel value={`${secs}s`} width={80} height={36} fontSize={24} color={tCol} />
+      </UiEntity>
     </UiEntity>
   )
 }
 
 function PlayingHUD() {
-  const timeStr = formatTime(uiState.playingSecondsLeft)
+  const timeStr   = formatTime(uiState.playingSecondsLeft)
   const roleColor = playerRole === 'shooter' ? RED : GREEN
+  const hp        = uiState.localHealth
+  const hpColor   = hp >= 7 ? GREEN : hp >= 4 ? YELLOW : RED
+  const secs      = uiState.playingSecondsLeft
+  const tCol      = secs > 30 ? WHITE : secs > 15 ? YELLOW : RED
+
   return (
     <UiEntity uiTransform={{ width: '100%', height: '100%', flexDirection: 'column', alignItems: 'center' }}>
       {playerRole === 'shooter' && <Crosshair />}
 
       {/* Top bar */}
       <UiEntity
-        uiTransform={{ width: '100%', flexDirection: 'row', alignItems: 'center', justifyContent: 'center', margin: { top: 24 } }}
+        uiTransform={{ width: 480, height: 56, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: { left: 20, right: 20 }, margin: { top: 24 }, borderRadius: 12 }}
+        uiBackground={{ color: BG_PANEL }}
       >
-        <UiEntity
-          uiTransform={{ width: 480, height: 52, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: { left: 20, right: 20 } }}
-          uiBackground={{ color: BG_PANEL }}
-        >
-          <OutlinedLabel value={playerRole === 'shooter' ? 'SHOOTER' : 'HIDER'} width={200} height={44} fontSize={26} color={roleColor} />
-          <OutlinedLabel value={timeStr} width={100} height={44} fontSize={30} color={YELLOW} />
-          {playerRole === 'shooter' && (
-            <OutlinedLabel value={`${uiState.hidersLeft} left`} width={120} height={44} fontSize={24} color={WHITE} />
-          )}
-          {playerRole === 'hider' && (
-            <OutlinedLabel
-              value={`HP ${uiState.localHealth}/10`}
-              width={120} height={44} fontSize={24}
-              color={uiState.localHealth >= 8 ? GREEN : uiState.localHealth >= 4 ? YELLOW : RED}
-            />
-          )}
-        </UiEntity>
+        <OutlinedLabel value={playerRole === 'shooter' ? 'HUNTER' : 'HIDER'} width={110} height={44} fontSize={22} color={roleColor} />
+        <OutlinedLabel value={timeStr} width={100} height={44} fontSize={32} color={tCol} />
+        {playerRole === 'shooter' && (
+          <OutlinedLabel value={`${uiState.hidersLeft} left`} width={110} height={44} fontSize={22} color={WHITE} />
+        )}
+        {playerRole === 'hider' && (
+          <UiEntity uiTransform={{ width: 118, flexDirection: 'column', alignItems: 'flex-end' }}>
+            <OutlinedLabel value={`HP  ${hp} / 10`} width={118} height={22} fontSize={16} color={hpColor} />
+            {/* Health bar */}
+            <UiEntity
+              uiTransform={{ width: 118, height: 8, borderRadius: 4, margin: { top: 4 } }}
+              uiBackground={{ color: { r: 0.2, g: 0.2, b: 0.2, a: 1 } }}
+            >
+              <UiEntity
+                uiTransform={{ width: hp * 11.8, height: 8, borderRadius: 4, positionType: 'absolute', position: { top: 0, left: 0 } }}
+                uiBackground={{ color: hpColor }}
+              />
+            </UiEntity>
+          </UiEntity>
+        )}
       </UiEntity>
 
       {/* Prop selector (hiders only) */}
       {playerRole === 'hider' && !uiState.eliminated && (
         <UiEntity uiTransform={{ width: '100%', flexDirection: 'row', alignItems: 'flex-end', justifyContent: 'center', positionType: 'absolute', position: { bottom: 64 } }}>
           <UiEntity
-            uiTransform={{ width: 440, height: 80, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: { left: 16, right: 16 } }}
+            uiTransform={{ width: 440, height: 64, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: { left: 16, right: 16 }, borderRadius: 12 }}
+            uiBackground={{ color: BG_PANEL }}
           >
-            <OutlinedLabel value="◄  E" width={72} height={72} fontSize={26} />
+            <OutlinedLabel value="◄  E" width={72} height={52} fontSize={26} />
             <OutlinedLabel value={PROPS[selectedIndex].name.toUpperCase()} width={200} height={32} fontSize={20} />
-            <OutlinedLabel value="F  ►" width={72} height={72} fontSize={26} />
+            <OutlinedLabel value="F  ►" width={72} height={52} fontSize={26} />
           </UiEntity>
         </UiEntity>
       )}
@@ -422,7 +481,7 @@ function PlayingHUD() {
           uiBackground={{ color: { r: 0, g: 0, b: 0, a: 0.45 } }}
         >
           <OutlinedLabel value="ELIMINATED" width={500} height={80} fontSize={58} color={RED} />
-          <OutlinedLabel value="You've been found!" width={500} height={40} fontSize={26} marginTop={8} />
+          <OutlinedLabel value="You have been found!" width={500} height={40} fontSize={26} marginTop={8} />
         </UiEntity>
       )}
     </UiEntity>
@@ -569,19 +628,32 @@ function CinematicPanel(props: { role?: 'hider' | 'shooter' }) {
 
 function ResultsPanel() {
   const shootersWon = uiState.winner === 'shooters'
-  const title = shootersWon ? 'SHOOTERS WIN!' : 'HIDERS WIN!'
-  const color = shootersWon ? RED : GREEN
+  const title       = shootersWon ? 'HUNTERS WIN!' : 'HIDERS WIN!'
+  const accentColor = shootersWon ? RED : GREEN
+  const headerBg: Color4 = shootersWon
+    ? { r: 0.45, g: 0.06, b: 0.06, a: 1 }
+    : { r: 0.08, g: 0.40, b: 0.12, a: 1 }
+
   return (
     <UiEntity
-      uiTransform={{ width: 500, height: 220, flexDirection: 'column', alignItems: 'center', justifyContent: 'center', positionType: 'absolute', position: { top: '50%', left: '50%' }, margin: { top: -110, left: -250 } }}
-      uiBackground={{ color: BG_DARK }}
+      uiTransform={{ width: 520, flexDirection: 'column', alignItems: 'center', positionType: 'absolute', position: { top: '50%', left: '50%' }, margin: { top: -140, left: -260 }, borderRadius: 16 }}
+      uiBackground={{ color: { r: 0.06, g: 0.06, b: 0.06, a: 0.95 } }}
     >
-      <OutlinedLabel value={title} width={480} height={80} fontSize={46} color={color} />
+      {/* Winner header */}
+      <UiEntity
+        uiTransform={{ width: 520, height: 84, alignItems: 'center', justifyContent: 'center', borderRadius: 16 }}
+        uiBackground={{ color: headerBg }}
+      >
+        <OutlinedLabel value={title} width={480} height={70} fontSize={52} color={WHITE} />
+      </UiEntity>
+
       <OutlinedLabel
-        value={shootersWon ? 'All hiders were found!' : 'Hiders survived!'}
-        width={480} height={40} fontSize={26} marginTop={12}
+        value={shootersWon ? 'All hiders were found!' : 'Hiders survived the hunt!'}
+        width={480} height={44} fontSize={26} marginTop={16}
+        color={accentColor}
       />
       <OutlinedLabel value="New game starting soon..." width={480} height={36} fontSize={20} marginTop={8} />
+      <UiEntity uiTransform={{ height: 20 }} />
     </UiEntity>
   )
 }
