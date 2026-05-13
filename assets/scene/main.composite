@@ -2907,8 +2907,8 @@
         "0": {
           "json": {
             "name": "Venetian Hunt",
-            "description": "Empty Scene Template",
-            "thumbnail": "thumbnails/thumbnail.jpg",
+            "description": "DCL HACKATON 2026",
+            "thumbnail": "assets/scene/Images/thumbnail.jpg",
             "categories": [],
             "author": "SDK",
             "email": "",
