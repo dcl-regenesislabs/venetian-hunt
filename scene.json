@@ -80,7 +80,7 @@
   },
   "authoritativeMultiplayer": true,
   "worldConfiguration": {
-    "name": "mendoexit.dcl.eth"
+    "name": "carrito.dcl.eth"
   },
   "logsPermissions": [
     "0xYOUR_WALLET_ADDRESS"
