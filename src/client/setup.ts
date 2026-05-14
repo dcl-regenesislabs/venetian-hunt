@@ -17,6 +17,7 @@ const HIDER_SPAWN = { x: 45.75, y: 10,  z: 57.25 }
 const GAME_AREA_FALLBACK_Y         = 2
 const GAME_AREA_GUARD_RADIUS       = 14
 const GAME_AREA_GUARD_FRAMES       = 240
+const CINEMATIC_RELEASE_DELAY_S    = 3
 
 // center, left, right slots — world positions computed from composite (boat scale 1.2, no rotation)
 const HIDER_SLOTS = [
@@ -39,10 +40,22 @@ let cinematicCamEntity:    Entity | undefined
 let cinematicTargetEntity: Entity | undefined
 let gameAreaGuardFrames = 0
 let gameAreaRecovering  = false
+let cinematicReleaseDelay = 0
+let pendingReleaseMode: 'none' | 'hider' | 'shooter' = 'none'
 
 function armGameAreaSpawnGuard() {
   gameAreaGuardFrames = GAME_AREA_GUARD_FRAMES
   gameAreaRecovering  = false
+}
+
+function cancelDelayedRelease() {
+  cinematicReleaseDelay = 0
+  pendingReleaseMode    = 'none'
+}
+
+function scheduleDelayedRelease(mode: 'hider' | 'shooter') {
+  cinematicReleaseDelay = CINEMATIC_RELEASE_DELAY_S
+  pendingReleaseMode    = mode
 }
 
 function startCinematic() {
@@ -100,6 +113,10 @@ export const uiState = {
 }
 
 export function getCurrentPhase() { return uiState.phase }
+export function getCinematicReleaseSecondsLeft() {
+  if (pendingReleaseMode === 'none' || cinematicReleaseDelay <= 0) return 0
+  return Math.max(1, Math.ceil(cinematicReleaseDelay))
+}
 
 type DisguiseSnapshot = { address: string; propSrc: string }
 type HealthSnapshot   = { address: string; health: number }
@@ -137,11 +154,13 @@ function applyPhaseState(phase: string, options?: { fromSync?: boolean; localEli
   uiState.phase = phase
 
   if (phase === 'cinematic') {
+    cancelDelayedRelease()
     uiState.eliminated = false
     startCinematic()
   }
 
   if (phase === 'lobby') {
+    cancelDelayedRelease()
     stopCinematic()
     resetVisibility()
     clearShooterWeapons()
@@ -164,29 +183,33 @@ function applyPhaseState(phase: string, options?: { fromSync?: boolean; localEli
     pauseShooter()
     uiState.eliminated = false
     if (localRole === 'hider') {
-      stopCinematic()
       if (!fromSync) reattachProp()
       armGameAreaSpawnGuard()
       movePlayerTo({ newRelativePosition: HIDER_SPAWN })
+      scheduleDelayedRelease('hider')
     }
   }
 
   if (phase === 'playing') {
-    stopCinematic()
-    resumeShooter()
+    cancelDelayedRelease()
     uiState.eliminated = localEliminated
     if (!fromSync) uiState.playingSecondsLeft = 180
 
     if (localRole === 'shooter') {
       armGameAreaSpawnGuard()
       movePlayerTo({ newRelativePosition: HIDER_SPAWN })
+      scheduleDelayedRelease('shooter')
     } else if (localEliminated) {
+      stopCinematic()
       clearLocalProp()
       movePlayerTo({ newRelativePosition: SPAWN })
+    } else {
+      stopCinematic()
     }
   }
 
   if (phase === 'results') {
+    cancelDelayedRelease()
     stopCinematic()
   }
 }
@@ -225,6 +248,25 @@ export function initClient() {
     if (synced || !isStateSyncronized()) return
     synced = true
     room.send('playerReady', {})
+  })
+
+  engine.addSystem((dt: number) => {
+    if (cinematicReleaseDelay <= 0 || pendingReleaseMode === 'none') return
+
+    if (uiState.phase === 'lobby' || uiState.phase === 'results') {
+      cancelDelayedRelease()
+      return
+    }
+
+    cinematicReleaseDelay -= dt
+    if (cinematicReleaseDelay > 0) return
+
+    const releaseMode = pendingReleaseMode
+    cancelDelayedRelease()
+    stopCinematic()
+    if (releaseMode === 'shooter' && uiState.phase === 'playing') {
+      resumeShooter()
+    }
   })
 
   // Multiworld streaming can make the distant island collider arrive a bit late on teleport.
