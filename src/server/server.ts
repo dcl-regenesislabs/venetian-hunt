@@ -43,6 +43,8 @@ export function initServer() {
   const connectedPlayers = new Set<string>()
   let activeHiders       = new Set<string>()
   const hiderHealth      = new Map<string, number>()
+  let currentPropSeed    = -1
+  let currentWinner: '' | 'shooters' | 'hiders' = ''
 
   // --- Single-slot timer ---
   let timerSecondsLeft = 0
@@ -65,6 +67,29 @@ export function initServer() {
     timerTickAccum   = 0
   }
 
+  function sendStateSync(to?: string[]) {
+    const phase     = GameStateComponent.get(gameEntity).phase
+    const roles     = RolesComponent.get(rolesEntity)
+    const disguises = DisguisedPlayersComponent.get(disguisedEntity).disguises.map((d) => ({
+      address: d.address,
+      propSrc: d.propSrc,
+    }))
+    const secondsLeft = timerOnExpire ? Math.max(0, Math.ceil(timerSecondsLeft)) : 0
+    const hidersLeft  = phase === 'playing' || phase === 'results' ? activeHiders.size : roles.hiders.length
+
+    room.send('stateSync', {
+      phase,
+      shooters: roles.shooters,
+      hiders: roles.hiders,
+      disguises,
+      secondsLeft,
+      hidersLeft,
+      winner: currentWinner,
+      propSeed: currentPropSeed,
+      healths: [...hiderHealth.entries()].map(([address, health]) => ({ address, health })),
+    }, to ? { to } : undefined)
+  }
+
   engine.addSystem((dt: number) => {
     if (!timerOnExpire) return
     timerSecondsLeft -= dt
@@ -83,6 +108,8 @@ export function initServer() {
   // --- Phase transitions ---
   function startCinematicPhase() {
     const roles = assignRoles([...connectedPlayers])
+    currentWinner = ''
+    currentPropSeed = -1
     RolesComponent.createOrReplace(rolesEntity, roles)
     DisguisedPlayersComponent.createOrReplace(disguisedEntity, { disguises: [] })
     GameStateComponent.createOrReplace(gameEntity, { phase: 'cinematic' })
@@ -95,9 +122,10 @@ export function initServer() {
   }
 
   function startHidingPhase() {
+    currentPropSeed = Math.floor(Math.random() * 1e6)
     GameStateComponent.createOrReplace(gameEntity, { phase: 'hiding' })
     room.send('gamePhaseChanged', { phase: 'hiding' })
-    room.send('propsSpawned', { seed: Math.floor(Math.random() * 1e6) })
+    room.send('propsSpawned', { seed: currentPropSeed })
     console.log('[Server] Hiding phase started')
 
     startTimer(
@@ -125,6 +153,7 @@ export function initServer() {
 
   function endGame(winner: 'shooters' | 'hiders') {
     cancelTimer()
+    currentWinner = winner
     GameStateComponent.createOrReplace(gameEntity, { phase: 'results' })
     room.send('gamePhaseChanged', { phase: 'results' })
     room.send('gameResults', { winner })
@@ -140,6 +169,8 @@ export function initServer() {
   function resetToLobby() {
     activeHiders = new Set()
     hiderHealth.clear()
+    currentPropSeed = -1
+    currentWinner   = ''
     RolesComponent.createOrReplace(rolesEntity, { shooters: [], hiders: [] })
     DisguisedPlayersComponent.createOrReplace(disguisedEntity, { disguises: [] })
     GameStateComponent.createOrReplace(gameEntity, { phase: 'lobby' })
@@ -278,6 +309,7 @@ export function initServer() {
   room.onMessage('playerReady', (_, context) => {
     if (!context) return
     console.log(`[Server] playerReady from ${context.from}`)
+    sendStateSync([context.from])
   })
 
   room.onMessage('startGame', (_, context) => {

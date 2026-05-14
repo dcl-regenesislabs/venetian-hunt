@@ -57,7 +57,12 @@ export function getCurrentPropSrc(): string {
   return PROPS[selectedIndex].src
 }
 
-function attachProp(src: string) {
+function setSelectedPropBySrc(src: string) {
+  const idx = PROPS.findIndex((p) => p.src === src)
+  if (idx >= 0) selectedIndex = idx
+}
+
+function attachProp(src: string, notifyServer = true) {
   if (propEntity !== undefined) {
     stopBlinkingEntity(propEntity)
     engine.removeEntity(propEntity)
@@ -65,12 +70,12 @@ function attachProp(src: string) {
   }
   const myAddress = PlayerIdentityData.getOrNull(engine.PlayerEntity)?.address?.toLowerCase()
   if (src === '') {
-    room.send('undisguise', {})
+    if (notifyServer) room.send('undisguise', {})
     if (myAddress) addVisiblePlayer(myAddress)
     return
   }
   if (myAddress) removeVisiblePlayer(myAddress)
-  room.send('selectProp', { propSrc: src })
+  if (notifyServer) room.send('selectProp', { propSrc: src })
   propEntity = engine.addEntity()
   applyPropComponents(propEntity, src, true)
   const prim = primitiveDisguiseTransform(src)
@@ -84,6 +89,11 @@ function attachProp(src: string) {
 
 export function reattachProp() {
   attachProp(PROPS[selectedIndex].src)
+}
+
+export function restoreLocalProp(src: string) {
+  setSelectedPropBySrc(src)
+  attachProp(src, false)
 }
 
 export function setPlayerRole(role: 'hider' | 'shooter', skipProp = false) {

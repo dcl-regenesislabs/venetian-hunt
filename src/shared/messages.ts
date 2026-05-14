@@ -28,4 +28,15 @@ export const room = registerMessages({
   hideCountdown:    Schemas.Map({ seconds: Schemas.Number }),
   playingTimer:     Schemas.Map({ secondsLeft: Schemas.Number, hidersLeft: Schemas.Number }),
   gameResults:      Schemas.Map({ winner: Schemas.String }),  // 'shooters' | 'hiders'
+  stateSync:        Schemas.Map({
+    phase:      Schemas.String,
+    shooters:   Schemas.Array(Schemas.String),
+    hiders:     Schemas.Array(Schemas.String),
+    disguises:  Schemas.Array(Schemas.Map({ address: Schemas.String, propSrc: Schemas.String })),
+    secondsLeft: Schemas.Number,
+    hidersLeft:  Schemas.Number,
+    winner:      Schemas.String,
+    propSeed:    Schemas.Number,
+    healths:     Schemas.Array(Schemas.Map({ address: Schemas.String, health: Schemas.Number })),
+  }),
 })
