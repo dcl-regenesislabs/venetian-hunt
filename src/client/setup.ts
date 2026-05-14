@@ -82,7 +82,7 @@ function startCinematic() {
   showRoleArrow(localRole)
 }
 
-function stopCinematic() {
+function stopCinematicView() {
   if (cinematicCamEntity !== undefined) {
     if (MainCamera.has(engine.CameraEntity)) {
       MainCamera.getMutable(engine.CameraEntity).virtualCameraEntity = undefined
@@ -94,11 +94,19 @@ function stopCinematic() {
     engine.removeEntity(cinematicTargetEntity)
     cinematicTargetEntity = undefined
   }
+  removeCinematicWeapon()
+  hideRoleArrow()
+}
+
+function releasePlayerControl() {
   if (InputModifier.has(engine.PlayerEntity)) {
     InputModifier.deleteFrom(engine.PlayerEntity)
   }
-  removeCinematicWeapon()
-  hideRoleArrow()
+}
+
+function stopCinematic() {
+  stopCinematicView()
+  releasePlayerControl()
 }
 
 // Shared UI state — read by ui.tsx every render frame
@@ -113,10 +121,6 @@ export const uiState = {
 }
 
 export function getCurrentPhase() { return uiState.phase }
-export function getCinematicReleaseSecondsLeft() {
-  if (pendingReleaseMode === 'none' || cinematicReleaseDelay <= 0) return 0
-  return Math.max(1, Math.ceil(cinematicReleaseDelay))
-}
 
 type DisguiseSnapshot = { address: string; propSrc: string }
 type HealthSnapshot   = { address: string; health: number }
@@ -183,6 +187,7 @@ function applyPhaseState(phase: string, options?: { fromSync?: boolean; localEli
     pauseShooter()
     uiState.eliminated = false
     if (localRole === 'hider') {
+      stopCinematicView()
       if (!fromSync) reattachProp()
       armGameAreaSpawnGuard()
       movePlayerTo({ newRelativePosition: HIDER_SPAWN })
@@ -196,6 +201,7 @@ function applyPhaseState(phase: string, options?: { fromSync?: boolean; localEli
     if (!fromSync) uiState.playingSecondsLeft = 180
 
     if (localRole === 'shooter') {
+      stopCinematicView()
       armGameAreaSpawnGuard()
       movePlayerTo({ newRelativePosition: HIDER_SPAWN })
       scheduleDelayedRelease('shooter')
@@ -263,7 +269,7 @@ export function initClient() {
 
     const releaseMode = pendingReleaseMode
     cancelDelayedRelease()
-    stopCinematic()
+    releasePlayerControl()
     if (releaseMode === 'shooter' && uiState.phase === 'playing') {
       resumeShooter()
     }

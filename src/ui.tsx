@@ -13,7 +13,7 @@ import { room } from './shared/messages'
 import { addVisiblePlayer, removeVisiblePlayer } from './avatarHiding'
 import { Color4, Quaternion } from '@dcl/sdk/math'
 import { activateShooter, deactivateShooter, getLastShotMs, setWeaponEntity } from './client/shooterSystem'
-import { uiState, getCinematicReleaseSecondsLeft } from './client/setup'
+import { uiState } from './client/setup'
 
 const WEAPON_SRC  = 'assets/scene/Models/low-poly_agm-1.glb'
 const ARROW_GREEN = 'assets/asset-packs/arrow_green/arrow-green.glb'
@@ -381,8 +381,6 @@ function HidingPanelHider() {
   const prop  = PROPS[selectedIndex]
   const secs  = uiState.hideSecondsLeft
   const tCol  = timerColor(secs)
-  const releaseSecondsLeft = getCinematicReleaseSecondsLeft()
-  const enteringArena = releaseSecondsLeft > 0
   return (
     <UiEntity uiTransform={{ width: '100%', height: '100%', flexDirection: 'column', alignItems: 'center', justifyContent: 'space-between', padding: { top: 24, bottom: 64 } }}>
       {/* Top countdown card */}
@@ -390,8 +388,8 @@ function HidingPanelHider() {
         uiTransform={{ width: 440, flexDirection: 'column', alignItems: 'center', padding: { top: 14, bottom: 14 }, borderRadius: 12 }}
         uiBackground={{ color: BG_DARK }}
       >
-        <OutlinedLabel value={enteringArena ? `ENTERING ARENA... ${releaseSecondsLeft}` : `HIDE!  ${secs}s`} width={400} height={52} fontSize={enteringArena ? 32 : 42} color={enteringArena ? YELLOW : tCol} />
-        <OutlinedLabel value={enteringArena ? 'Loading the play area...' : 'Find the perfect spot to blend in!'} width={400} height={26} fontSize={16} marginTop={6} />
+        <OutlinedLabel value={`HIDE!  ${secs}s`} width={400} height={52} fontSize={42} color={tCol} />
+        <OutlinedLabel value="Find the perfect spot to blend in!" width={400} height={26} fontSize={16} marginTop={6} />
       </UiEntity>
 
       {/* Bottom: prop selector */}
@@ -410,22 +408,11 @@ function HidingPanelHider() {
 function HidingPanelShooter() {
   const secs = uiState.hideSecondsLeft
   const tCol = timerColor(secs)
-  const releaseSecondsLeft = getCinematicReleaseSecondsLeft()
-  const enteringArena = releaseSecondsLeft > 0
   return (
     <UiEntity
       uiTransform={{ width: 460, flexDirection: 'column', alignItems: 'center', positionType: 'absolute', position: { top: 24, left: '50%' }, margin: { left: -230 }, borderRadius: 12 }}
       uiBackground={{ color: BG_DARK }}
     >
-      {enteringArena && (
-        <UiEntity
-          uiTransform={{ width: 460, height: 96, flexDirection: 'column', alignItems: 'center', justifyContent: 'center', positionType: 'absolute', position: { top: 0, left: 0 }, borderRadius: 12 }}
-          uiBackground={{ color: { r: 0, g: 0, b: 0, a: 0.94 } }}
-        >
-          <OutlinedLabel value={`ENTERING ARENA... ${releaseSecondsLeft}`} width={420} height={38} fontSize={24} color={YELLOW} />
-          <OutlinedLabel value="Loading the play area..." width={420} height={24} fontSize={16} marginTop={4} color={WHITE} />
-        </UiEntity>
-      )}
       {/* Red header */}
       <UiEntity
         uiTransform={{ width: 460, height: 52, alignItems: 'center', justifyContent: 'center', borderRadius: 12 }}
@@ -451,50 +438,37 @@ function PlayingHUD() {
   const hpColor   = hp >= 7 ? GREEN : hp >= 4 ? YELLOW : RED
   const secs      = uiState.playingSecondsLeft
   const tCol      = secs > 30 ? WHITE : secs > 15 ? YELLOW : RED
-  const releaseSecondsLeft = getCinematicReleaseSecondsLeft()
-  const showShooterEnteringBanner = playerRole === 'shooter' && releaseSecondsLeft > 0
 
   return (
     <UiEntity uiTransform={{ width: '100%', height: '100%', flexDirection: 'column', alignItems: 'center' }}>
       {playerRole === 'shooter' && <Crosshair />}
 
-      {showShooterEnteringBanner && (
-        <UiEntity
-          uiTransform={{ width: 480, height: 56, alignItems: 'center', justifyContent: 'center', margin: { top: 24 }, borderRadius: 12 }}
-          uiBackground={{ color: BG_DARK }}
-        >
-          <OutlinedLabel value={`ENTERING ARENA... ${releaseSecondsLeft}`} width={440} height={42} fontSize={28} color={YELLOW} />
-        </UiEntity>
-      )}
-
       {/* Top bar */}
-      {!showShooterEnteringBanner && (
-        <UiEntity
-          uiTransform={{ width: 480, height: 56, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: { left: 20, right: 20 }, margin: { top: 24 }, borderRadius: 12 }}
-          uiBackground={{ color: BG_PANEL }}
-        >
-          <OutlinedLabel value={playerRole === 'shooter' ? 'HUNTER' : 'HIDER'} width={110} height={44} fontSize={22} color={roleColor} />
-          <OutlinedLabel value={timeStr} width={100} height={44} fontSize={32} color={tCol} />
-          {playerRole === 'shooter' && (
-            <OutlinedLabel value={`${uiState.hidersLeft} left`} width={110} height={44} fontSize={22} color={WHITE} />
-          )}
-          {playerRole === 'hider' && (
-            <UiEntity uiTransform={{ width: 118, flexDirection: 'column', alignItems: 'flex-end' }}>
-              <OutlinedLabel value={`HP  ${hp} / 10`} width={118} height={22} fontSize={16} color={hpColor} />
-              {/* Health bar */}
+      <UiEntity
+        uiTransform={{ width: 480, height: 56, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: { left: 20, right: 20 }, margin: { top: 24 }, borderRadius: 12 }}
+        uiBackground={{ color: BG_PANEL }}
+      >
+        <OutlinedLabel value={playerRole === 'shooter' ? 'HUNTER' : 'HIDER'} width={110} height={44} fontSize={22} color={roleColor} />
+        <OutlinedLabel value={timeStr} width={100} height={44} fontSize={32} color={tCol} />
+        {playerRole === 'shooter' && (
+          <OutlinedLabel value={`${uiState.hidersLeft} left`} width={110} height={44} fontSize={22} color={WHITE} />
+        )}
+        {playerRole === 'hider' && (
+          <UiEntity uiTransform={{ width: 118, flexDirection: 'column', alignItems: 'flex-end' }}>
+            <OutlinedLabel value={`HP  ${hp} / 10`} width={118} height={22} fontSize={16} color={hpColor} />
+            {/* Health bar */}
+            <UiEntity
+              uiTransform={{ width: 118, height: 8, borderRadius: 4, margin: { top: 4 } }}
+              uiBackground={{ color: { r: 0.2, g: 0.2, b: 0.2, a: 1 } }}
+            >
               <UiEntity
-                uiTransform={{ width: 118, height: 8, borderRadius: 4, margin: { top: 4 } }}
-                uiBackground={{ color: { r: 0.2, g: 0.2, b: 0.2, a: 1 } }}
-              >
-                <UiEntity
-                  uiTransform={{ width: hp * 11.8, height: 8, borderRadius: 4, positionType: 'absolute', position: { top: 0, left: 0 } }}
-                  uiBackground={{ color: hpColor }}
-                />
-              </UiEntity>
+                uiTransform={{ width: hp * 11.8, height: 8, borderRadius: 4, positionType: 'absolute', position: { top: 0, left: 0 } }}
+                uiBackground={{ color: hpColor }}
+              />
             </UiEntity>
-          )}
-        </UiEntity>
-      )}
+          </UiEntity>
+        )}
+      </UiEntity>
 
       {/* Prop selector (hiders only) */}
       {playerRole === 'hider' && !uiState.eliminated && (
@@ -526,8 +500,6 @@ function PlayingHUD() {
 
 function CinematicPanel(props: { role?: 'hider' | 'shooter' }) {
   const isHider = (props.role ?? playerRole) === 'hider'
-  const releaseSecondsLeft = getCinematicReleaseSecondsLeft()
-  const headerText = releaseSecondsLeft > 0 ? `ENTERING ARENA... ${releaseSecondsLeft}` : 'GET  READY!'
 
   const GRN_CARD: Color4 = { r: 0.05, g: 0.22, b: 0.07, a: 0.92 }
   const GRN_DIM:  Color4 = { r: 0.03, g: 0.12, b: 0.04, a: 0.80 }
@@ -557,7 +529,7 @@ function CinematicPanel(props: { role?: 'hider' | 'shooter' }) {
         uiTransform={{ width: 660, height: 68, alignItems: 'center', justifyContent: 'center', borderRadius: 14 }}
         uiBackground={{ color: { r: 0, g: 0, b: 0, a: 0.85 } }}
       >
-        <OutlinedLabel value={headerText} width={600} height={58} fontSize={releaseSecondsLeft > 0 ? 38 : 46} color={YELLOW} />
+        <OutlinedLabel value="GET  READY!" width={600} height={58} fontSize={46} color={YELLOW} />
       </UiEntity>
 
       <UiEntity uiTransform={{ width: 660, height: 10 }} />
@@ -718,15 +690,13 @@ function DebugBar(props: { phase: string; role: string }) {
 export const uiMenu = () => {
   const phase      = DEBUG ? DEBUG_PHASES[dbgPhaseIdx] : uiState.phase
   const activeRole = DEBUG ? dbgRole : playerRole
-  const releaseSecondsLeft = getCinematicReleaseSecondsLeft()
-  const showHiderCinematicDuringEnter = !DEBUG && phase === 'hiding' && activeRole === 'hider' && releaseSecondsLeft > 0
 
   return (
     <UiEntity uiTransform={{ width: '100%', height: '100%', flexDirection: 'column', alignItems: 'center', justifyContent: 'space-between' }}>
       {DEBUG && <DebugBar phase={phase} role={activeRole} />}
-      {(phase === 'cinematic' || showHiderCinematicDuringEnter) && <CinematicPanel role={activeRole} />}
+      {phase === 'cinematic' && <CinematicPanel role={activeRole} />}
       {phase === 'lobby'     && <LobbyPanel />}
-      {phase === 'hiding'    && activeRole === 'hider'   && !showHiderCinematicDuringEnter && <HidingPanelHider />}
+      {phase === 'hiding'    && activeRole === 'hider'   && <HidingPanelHider />}
       {phase === 'hiding'    && activeRole === 'shooter'  && <HidingPanelShooter />}
       {phase === 'playing'   && <PlayingHUD />}
       {phase === 'results'   && <ResultsPanel />}
