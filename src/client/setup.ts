@@ -14,7 +14,7 @@ import { spawnRandomProps, clearProps } from '../props'
 
 const SPAWN       = { x: 43.5, y: 2.75, z: 4 }
 const HIDER_SPAWN = { x: 45.75, y: 10,  z: 57.25 }
-const GAME_AREA_FALLBACK_Y         = HIDER_SPAWN.y - 1.5
+const GAME_AREA_FALLBACK_Y         = 2
 const GAME_AREA_GUARD_RADIUS       = 14
 const GAME_AREA_GUARD_FRAMES       = 240
 
@@ -183,9 +183,6 @@ function applyPhaseState(phase: string, options?: { fromSync?: boolean; localEli
     } else if (localEliminated) {
       clearLocalProp()
       movePlayerTo({ newRelativePosition: SPAWN })
-    } else {
-      armGameAreaSpawnGuard()
-      movePlayerTo({ newRelativePosition: HIDER_SPAWN })
     }
   }
 
