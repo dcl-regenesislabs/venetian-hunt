@@ -94,38 +94,52 @@ export function setPlayerRole(role: 'hider' | 'shooter', skipProp = false) {
       engine.removeEntity(propEntity)
       propEntity = undefined
     }
-    if (weaponEntity === undefined) {
-      weaponEntity = engine.addEntity()
-      GltfContainer.create(weaponEntity, {
-        src: WEAPON_SRC,
-        invisibleMeshesCollisionMask: ColliderLayer.CL_NONE,
-        visibleMeshesCollisionMask: ColliderLayer.CL_NONE,
-      })
-      Transform.create(weaponEntity, {
-        parent: engine.CameraEntity,
-        position: { x: 0.4, y: -0.3, z: 0.7 },
-        rotation: Quaternion.fromEulerDegrees(0, 90, 0),
-        scale: { x: 0.02, y: 0.02, z: 0.02 },
-      })
-      setWeaponEntity(weaponEntity)
-    }
+    disableShooterLoadout()
+  } else {
+    disableShooterLoadout()
+    if (!skipProp) attachProp(PROPS[selectedIndex].src)
+  }
+}
+
+export function enableShooterLoadout() {
+  if (playerRole !== 'shooter') return
+
+  if (weaponEntity === undefined) {
+    weaponEntity = engine.addEntity()
+    GltfContainer.create(weaponEntity, {
+      src: WEAPON_SRC,
+      invisibleMeshesCollisionMask: ColliderLayer.CL_NONE,
+      visibleMeshesCollisionMask: ColliderLayer.CL_NONE,
+    })
+    Transform.create(weaponEntity, {
+      parent: engine.CameraEntity,
+      position: { x: 0.4, y: -0.3, z: 0.7 },
+      rotation: Quaternion.fromEulerDegrees(0, 90, 0),
+      scale: { x: 0.02, y: 0.02, z: 0.02 },
+    })
+    setWeaponEntity(weaponEntity)
+  }
+
+  if (camAreaEntity === undefined) {
     camAreaEntity = engine.addEntity()
     Transform.create(camAreaEntity, { parent: engine.PlayerEntity, position: { x: 0, y: 0, z: 0 } })
     CameraModeArea.create(camAreaEntity, { area: { x: 0.5, y: 2, z: 0.5 }, mode: CameraType.CT_FIRST_PERSON })
-    activateShooter()
-  } else {
-    if (weaponEntity !== undefined) {
-      engine.removeEntity(weaponEntity)
-      weaponEntity = undefined
-      setWeaponEntity(undefined)
-    }
-    if (camAreaEntity !== undefined) {
-      engine.removeEntity(camAreaEntity)
-      camAreaEntity = undefined
-    }
-    deactivateShooter()
-    if (!skipProp) attachProp(PROPS[selectedIndex].src)
   }
+
+  activateShooter()
+}
+
+export function disableShooterLoadout() {
+  if (weaponEntity !== undefined) {
+    engine.removeEntity(weaponEntity)
+    weaponEntity = undefined
+    setWeaponEntity(undefined)
+  }
+  if (camAreaEntity !== undefined) {
+    engine.removeEntity(camAreaEntity)
+    camAreaEntity = undefined
+  }
+  deactivateShooter()
 }
 
 export function clearLocalProp() {
@@ -185,16 +199,7 @@ export function hideRoleArrow() {
 
 export function resetForLobby() {
   clearLocalProp()
-  deactivateShooter()
-  if (weaponEntity !== undefined) {
-    engine.removeEntity(weaponEntity)
-    weaponEntity = undefined
-    setWeaponEntity(undefined)
-  }
-  if (camAreaEntity !== undefined) {
-    engine.removeEntity(camAreaEntity)
-    camAreaEntity = undefined
-  }
+  disableShooterLoadout()
   playerRole    = 'hider'
   selectedIndex = 0
 }
