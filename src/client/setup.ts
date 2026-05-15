@@ -39,23 +39,12 @@ function startCinematic() {
   InputModifier.create(engine.PlayerEntity, {
     mode: InputModifier.Mode.Standard({ disableAll: true })
   })
+  pauseShooter()
 
   const slots = localRole === 'hider' ? HIDER_SLOTS : SHOOTER_SLOTS
   const dest  = slots[cinematicSlotIndex] ?? slots[0]
-  movePlayerTo({ newRelativePosition: dest, cameraTarget: CINEMATIC_CAM_POS })
+  movePlayerTo({ newRelativePosition: dest })
 
-  cinematicTargetEntity = engine.addEntity()
-  Transform.create(cinematicTargetEntity, { position: CINEMATIC_LOOK_AT_POS })
-
-  cinematicCamEntity = engine.addEntity()
-  Transform.create(cinematicCamEntity, { position: CINEMATIC_CAM_POS })
-  VirtualCamera.create(cinematicCamEntity, {
-    lookAtEntity: cinematicTargetEntity,
-    defaultTransition: { transitionMode: VirtualCamera.Transition.Time(1.5) }
-  })
-  MainCamera.getMutable(engine.CameraEntity).virtualCameraEntity = cinematicCamEntity
-
-  createCinematicWeapon()
   showRoleArrow(localRole)
 }
 
@@ -74,7 +63,6 @@ function stopCinematic() {
   if (InputModifier.has(engine.PlayerEntity)) {
     InputModifier.deleteFrom(engine.PlayerEntity)
   }
-  removeCinematicWeapon()
   hideRoleArrow()
 }
 

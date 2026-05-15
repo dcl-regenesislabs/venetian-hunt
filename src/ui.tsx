@@ -490,137 +490,84 @@ function PlayingHUD() {
 
 function CinematicPanel(props: { role?: 'hider' | 'shooter' }) {
   const isHider = (props.role ?? playerRole) === 'hider'
-
-  const GRN_CARD: Color4 = { r: 0.05, g: 0.22, b: 0.07, a: 0.92 }
-  const GRN_DIM:  Color4 = { r: 0.03, g: 0.12, b: 0.04, a: 0.80 }
-  const RED_CARD: Color4 = { r: 0.22, g: 0.04, b: 0.04, a: 0.92 }
-  const RED_DIM:  Color4 = { r: 0.12, g: 0.02, b: 0.02, a: 0.80 }
-  const DIM_TEXT: Color4 = { r: 0.55, g: 0.55, b: 0.55, a: 1    }
-  const KEY_BG:   Color4 = { r: 0,    g: 0,    b: 0,    a: 0.45 }
-  const THUMB_BG: Color4 = { r: 0.15, g: 0.15, b: 0.15, a: 1    }
-
-  const prevIdx  = (selectedIndex - 1 + PROPS.length) % PROPS.length
-  const nextIdx  = (selectedIndex + 1) % PROPS.length
-  const prevProp = PROPS[prevIdx]
-  const currProp = PROPS[selectedIndex]
-  const nextProp = PROPS[nextIdx]
+  const KEY_BG:  Color4 = { r: 0, g: 0, b: 0, a: 0.45 }
+  const THUMB_BG: Color4 = { r: 0.15, g: 0.15, b: 0.15, a: 1 }
+  const cardBg:   Color4 = isHider ? { r: 0.05, g: 0.22, b: 0.07, a: 0.92 } : { r: 0.22, g: 0.04, b: 0.04, a: 0.92 }
+  const headerBg: Color4 = isHider ? { r: 0.12, g: 0.52, b: 0.18, a: 1 }    : { r: 0.55, g: 0.08, b: 0.08, a: 1    }
+  const accentColor       = isHider ? GREEN : RED
+  const currProp          = PROPS[selectedIndex]
 
   return (
     <UiEntity
       uiTransform={{
-        width: 660, height: 468,
-        flexDirection: 'column', alignItems: 'center',
+        width: 420, flexDirection: 'column', alignItems: 'center',
         positionType: 'absolute', position: { top: 40, left: '50%' },
-        margin: { left: -330 },
+        margin: { left: -210 },
       }}
     >
-      {/* ── Header ── */}
+      {/* Header */}
       <UiEntity
-        uiTransform={{ width: 660, height: 68, alignItems: 'center', justifyContent: 'center', borderRadius: 14 }}
+        uiTransform={{ width: 420, height: 68, alignItems: 'center', justifyContent: 'center', borderRadius: 14, margin: { bottom: 10 } }}
         uiBackground={{ color: { r: 0, g: 0, b: 0, a: 0.85 } }}
       >
-        <OutlinedLabel value="GET  READY!" width={600} height={58} fontSize={46} color={YELLOW} />
+        <OutlinedLabel value="GET  READY!" width={380} height={58} fontSize={46} color={YELLOW} />
       </UiEntity>
 
-      <UiEntity uiTransform={{ width: 660, height: 10 }} />
-
-      {/* ── Cards ── */}
-      <UiEntity uiTransform={{ width: 660, height: 390, flexDirection: 'row', justifyContent: 'space-between' }}>
-
-        {/* ── PROP TEAM ── */}
+      {/* Role card */}
+      <UiEntity
+        uiTransform={{ width: 420, flexDirection: 'column', alignItems: 'center', borderRadius: 16 }}
+        uiBackground={{ color: cardBg }}
+      >
         <UiEntity
-          uiTransform={{ width: 322, height: 390, flexDirection: 'column', alignItems: 'center', borderRadius: 16 }}
-          uiBackground={{ color: isHider ? GRN_CARD : GRN_DIM }}
+          uiTransform={{ width: 420, height: 58, alignItems: 'center', justifyContent: 'center', borderRadius: 16 }}
+          uiBackground={{ color: headerBg }}
         >
-          {/* Colored header with title */}
-          <UiEntity
-            uiTransform={{ width: 322, height: 58, alignItems: 'center', justifyContent: 'center', borderRadius: 16 }}
-            uiBackground={{ color: { r: 0.12, g: 0.52, b: 0.18, a: isHider ? 1 : 0.5 } }}
-          >
-            <OutlinedLabel value="PROP TEAM" width={290} height={46} fontSize={30} color={WHITE} />
-          </UiEntity>
+          <OutlinedLabel value={isHider ? 'PROP TEAM' : 'HUNTER TEAM'} width={380} height={46} fontSize={30} color={WHITE} />
+        </UiEntity>
 
-          <UiEntity uiTransform={{ width: 290, flexDirection: 'column', alignItems: 'center', padding: { top: 16 } }}>
-            <OutlinedLabel value="Change your shape using" width={290} height={26} fontSize={17} color={isHider ? WHITE : DIM_TEXT} />
-            <OutlinedLabel value="E and F to blend in!" width={290} height={26} fontSize={17} color={isHider ? WHITE : DIM_TEXT} />
-
-            {/* Prop carousel */}
-            <UiEntity
-              uiTransform={{ width: 290, height: 100, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', margin: { top: 16 }, borderRadius: 10 }}
-              uiBackground={{ color: KEY_BG }}
-            >
-              <OutlinedLabel value="◄ E" width={80} height={44} fontSize={22} color={GREEN} />
-              <UiEntity uiTransform={{ width: 76, height: 76, margin: { left: 8, right: 8 }, borderRadius: 8 }}
-                uiBackground={currProp.src !== '' && currProp.thumbnail ? { texture: { src: currProp.thumbnail }, textureMode: 'stretch' } : { color: THUMB_BG }}
-              />
-              <OutlinedLabel value="F ►" width={80} height={44} fontSize={22} color={GREEN} />
+        <UiEntity uiTransform={{ width: 370, flexDirection: 'column', alignItems: 'center', padding: { top: 20, bottom: 20 } }}>
+          {isHider ? (
+            <UiEntity uiTransform={{ width: 370, flexDirection: 'column', alignItems: 'center' }}>
+              <OutlinedLabel value="Change your shape using E and F" width={370} height={28} fontSize={18} color={WHITE} />
+              <OutlinedLabel value="to blend in and survive!" width={370} height={28} fontSize={18} color={WHITE} />
+              <UiEntity
+                uiTransform={{ width: 370, height: 100, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', margin: { top: 20 }, borderRadius: 10 }}
+                uiBackground={{ color: KEY_BG }}
+              >
+                <OutlinedLabel value="◄ E" width={80} height={44} fontSize={22} color={GREEN} />
+                <UiEntity uiTransform={{ width: 76, height: 76, margin: { left: 16, right: 16 }, borderRadius: 8 }}
+                  uiBackground={currProp.src !== '' && currProp.thumbnail ? { texture: { src: currProp.thumbnail }, textureMode: 'stretch' } : { color: THUMB_BG }}
+                />
+                <OutlinedLabel value="F ►" width={80} height={44} fontSize={22} color={GREEN} />
+              </UiEntity>
+              <OutlinedLabel value="Survive until time runs out!" width={370} height={28} fontSize={16} marginTop={16} color={YELLOW} />
             </UiEntity>
-
-            <OutlinedLabel value="Survive until time runs out!" width={290} height={26} fontSize={15} marginTop={14} color={isHider ? YELLOW : DIM_TEXT} />
-          </UiEntity>
-
-          {/* YOUR TEAM badge — always at bottom */}
-          {isHider && (
-            <UiEntity
-              uiTransform={{ width: 120, height: 28, alignItems: 'center', justifyContent: 'center', borderRadius: 6, positionType: 'absolute', position: { bottom: 16 } }}
-              uiBackground={{ color: GREEN }}
-            >
-              <Label value="YOUR TEAM" uiTransform={{ width: 120, height: 28 }} textAlign="middle-center" fontSize={14} color={BLACK} />
+          ) : (
+            <UiEntity uiTransform={{ width: 370, flexDirection: 'column', alignItems: 'center' }}>
+              <OutlinedLabel value="Find and eliminate all Props" width={370} height={28} fontSize={18} color={WHITE} />
+              <OutlinedLabel value="before time runs out." width={370} height={28} fontSize={18} color={WHITE} />
+              <UiEntity
+                uiTransform={{ width: 370, height: 100, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', margin: { top: 20 }, borderRadius: 10 }}
+                uiBackground={{ color: KEY_BG }}
+              >
+                <UiEntity uiTransform={{ width: 130, flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
+                  <UiEntity uiTransform={{ width: 56, height: 56, borderRadius: 8 }}
+                    uiBackground={{ texture: { src: 'assets/images/target.png' }, textureMode: 'stretch' }}
+                  />
+                  <OutlinedLabel value="AIM" width={100} height={22} fontSize={14} marginTop={6} color={WHITE} />
+                </UiEntity>
+                <UiEntity uiTransform={{ width: 1, height: 70 }} uiBackground={{ color: { r: 1, g: 1, b: 1, a: 0.12 } }} />
+                <UiEntity uiTransform={{ width: 130, flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
+                  <UiEntity uiTransform={{ width: 56, height: 56, borderRadius: 8 }}
+                    uiBackground={{ texture: { src: 'assets/images/mouse_icon.png' }, textureMode: 'stretch' }}
+                  />
+                  <OutlinedLabel value="SHOOT" width={100} height={22} fontSize={14} marginTop={6} color={WHITE} />
+                </UiEntity>
+              </UiEntity>
+              <OutlinedLabel value="Shoot them all to win!" width={370} height={28} fontSize={16} marginTop={16} color={YELLOW} />
             </UiEntity>
           )}
         </UiEntity>
-
-        {/* ── HUNTER TEAM ── */}
-        <UiEntity
-          uiTransform={{ width: 322, height: 390, flexDirection: 'column', alignItems: 'center', borderRadius: 16 }}
-          uiBackground={{ color: !isHider ? RED_CARD : RED_DIM }}
-        >
-          {/* Colored header with title */}
-          <UiEntity
-            uiTransform={{ width: 322, height: 58, alignItems: 'center', justifyContent: 'center', borderRadius: 16 }}
-            uiBackground={{ color: { r: 0.55, g: 0.08, b: 0.08, a: !isHider ? 1 : 0.5 } }}
-          >
-            <OutlinedLabel value="HUNTER TEAM" width={290} height={46} fontSize={30} color={WHITE} />
-          </UiEntity>
-
-          <UiEntity uiTransform={{ width: 290, flexDirection: 'column', alignItems: 'center', padding: { top: 16 } }}>
-            <OutlinedLabel value="Find and eliminate all hiders" width={290} height={26} fontSize={17} color={!isHider ? WHITE : DIM_TEXT} />
-            <OutlinedLabel value="before time runs out." width={290} height={26} fontSize={17} color={!isHider ? WHITE : DIM_TEXT} />
-
-            {/* Controls with images */}
-            <UiEntity
-              uiTransform={{ width: 290, height: 100, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', margin: { top: 16 }, borderRadius: 10 }}
-              uiBackground={{ color: KEY_BG }}
-            >
-              <UiEntity uiTransform={{ width: 110, flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
-                <UiEntity uiTransform={{ width: 56, height: 56, borderRadius: 8 }}
-                  uiBackground={{ texture: { src: 'assets/images/target.png' }, textureMode: 'stretch' }}
-                />
-                <OutlinedLabel value="AIM" width={90} height={22} fontSize={14} marginTop={6} color={WHITE} />
-              </UiEntity>
-              <UiEntity uiTransform={{ width: 1, height: 70 }} uiBackground={{ color: { r: 1, g: 1, b: 1, a: 0.12 } }} />
-              <UiEntity uiTransform={{ width: 110, flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
-                <UiEntity uiTransform={{ width: 56, height: 56, borderRadius: 8 }}
-                  uiBackground={{ texture: { src: 'assets/images/mouse_icon.png' }, textureMode: 'stretch' }}
-                />
-                <OutlinedLabel value="SHOOT" width={90} height={22} fontSize={14} marginTop={6} color={WHITE} />
-              </UiEntity>
-            </UiEntity>
-
-            <OutlinedLabel value="Shoot them all to win!" width={290} height={26} fontSize={15} marginTop={14} color={!isHider ? YELLOW : DIM_TEXT} />
-          </UiEntity>
-
-          {/* YOUR TEAM badge — always at bottom */}
-          {!isHider && (
-            <UiEntity
-              uiTransform={{ width: 120, height: 28, alignItems: 'center', justifyContent: 'center', borderRadius: 6, positionType: 'absolute', position: { bottom: 16 } }}
-              uiBackground={{ color: RED }}
-            >
-              <Label value="YOUR TEAM" uiTransform={{ width: 120, height: 28 }} textAlign="middle-center" fontSize={14} color={BLACK} />
-            </UiEntity>
-          )}
-        </UiEntity>
-
       </UiEntity>
     </UiEntity>
   )
