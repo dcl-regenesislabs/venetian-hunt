@@ -11,7 +11,7 @@ permissions:
 
 jobs:
   review:
-    uses: aguscarriso1234/dcl-pr-reviewer/.github/workflows/review.yml@main
+    uses: agustincarriso/dcl-pr-reviewer/.github/workflows/review.yml@main
     with:
       review_mode: summary
       max_diff_chars: "45000"
