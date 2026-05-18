@@ -327,11 +327,6 @@ function LobbyPanel() {
   const ONLINE:   Color4 = { r: 0.15, g: 0.75, b: 0.3,  a: 1    }
   const BTN_DIM:  Color4 = { r: 0.18, g: 0.18, b: 0.18, a: 1    }
   const statusMsg = count < 2 ? 'Waiting for more players...' : count > 6 ? 'Too many players (max 6)' : 'Ready to start!'
-  const roleButtons: Array<{ role: RolePreference; label: string; active: Color4 }> = [
-    { role: 'hider', label: 'HIDER', active: GREEN },
-    { role: 'shooter', label: 'SHOOTER', active: RED },
-    { role: 'random', label: 'RANDOM', active: YELLOW },
-  ]
 
   return (
     <UiEntity
@@ -381,41 +376,6 @@ function LobbyPanel() {
           value={statusMsg}
           width={440} height={28} fontSize={17} marginTop={4}
           color={canStart ? GREEN : { r: 0.6, g: 0.6, b: 0.6, a: 1 }}
-        />
-
-        {/* Role preference */}
-        <OutlinedLabel
-          value="PICK YOUR ROLE BEFORE START"
-          width={440} height={24} fontSize={16} marginTop={8}
-          color={WHITE}
-        />
-        <UiEntity
-          uiTransform={{ width: 440, height: 52, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', margin: { top: 10 } }}
-        >
-          {roleButtons.map((button) => {
-            const selected = preferredLobbyRole === button.role
-            return (
-              <UiEntity
-                key={button.role}
-                uiTransform={{ width: 132, height: 52, alignItems: 'center', justifyContent: 'center', borderRadius: 12 }}
-                uiBackground={{ color: selected ? button.active : BTN_DIM }}
-                onMouseDown={() => setPreferredLobbyRole(button.role)}
-              >
-                <Label
-                  value={button.label}
-                  uiTransform={{ width: 132, height: 52 }}
-                  textAlign="middle-center"
-                  fontSize={20}
-                  color={selected ? BLACK : WHITE}
-                />
-              </UiEntity>
-            )
-          })}
-        </UiEntity>
-        <OutlinedLabel
-          value="Preference is used when possible. If too many players choose the same side, some will be reassigned."
-          width={440} height={44} fontSize={14} marginTop={8}
-          color={{ r: 0.72, g: 0.72, b: 0.72, a: 1 }}
         />
 
         {/* Start button */}
