@@ -13,13 +13,23 @@ const PLAYING_DURATION_S   = 180  // 3 minutes
 const RESULTS_DURATION_S   = 8
 
 // floor(n/2) shooters — odd remainder always goes to hiders (shooters always at disadvantage)
+function shuffle<T>(items: T[]): T[] {
+  const shuffled = [...items]
+  for (let i = shuffled.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1))
+    const tmp = shuffled[i]
+    shuffled[i] = shuffled[j]
+    shuffled[j] = tmp
+  }
+  return shuffled
+}
+
 function assignRoles(addresses: string[]): { shooters: string[]; hiders: string[] } {
-  const capped       = addresses.slice(0, MAX_PLAYERS)
-  const shuffled     = [...capped].sort(() => Math.random() - 0.5)
+  const capped       = shuffle(addresses).slice(0, MAX_PLAYERS)
   const shooterCount = Math.max(1, Math.floor(capped.length / 2))
   return {
-    shooters: shuffled.slice(0, shooterCount),
-    hiders:   shuffled.slice(shooterCount),
+    shooters: capped.slice(0, shooterCount),
+    hiders:   capped.slice(shooterCount),
   }
 }
 
