@@ -1,4 +1,4 @@
-import { engine, PlayerIdentityData, VirtualCamera, MainCamera, InputModifier, Transform, Entity } from '@dcl/sdk/ecs'
+import { engine, PlayerIdentityData, MainCamera, InputModifier, Transform, Entity } from '@dcl/sdk/ecs'
 import { isStateSyncronized } from '@dcl/sdk/network'
 import { movePlayerTo } from '~system/RestrictedActions'
 import { room } from '../shared/messages'
@@ -6,7 +6,7 @@ import { updateShooterIds, addVisiblePlayer, removeVisiblePlayer, resetVisibilit
 import { onPlayerDisguised, onPlayerUndisguised, blinkPlayerProp, clearAllProps } from './propSystem'
 import { updateShooterWeapons, clearShooterWeapons, updateShooterAim, getShooterMuzzleWorld } from './shooterWeapons'
 import { spawnRemoteBullet, spawnRemoteVfx } from './remoteBullets'
-import { setPlayerRole, blinkLocalProp, resetForLobby, clearLocalProp, reattachProp, createCinematicWeapon, removeCinematicWeapon, showRoleArrow, hideRoleArrow } from '../ui'
+import { setPlayerRole, blinkLocalProp, resetForLobby, clearLocalProp, reattachProp, showRoleArrow, hideRoleArrow, enableShooterLoadout, disableShooterLoadout } from '../ui'
 import { pauseShooter, resumeShooter } from './shooterSystem'
 import { playGunshotAt } from './audioManager'
 import { onHiderHit } from './hiderHealth'
@@ -36,26 +36,13 @@ let cinematicCamEntity:    Entity | undefined
 let cinematicTargetEntity: Entity | undefined
 
 function startCinematic() {
-  InputModifier.create(engine.PlayerEntity, {
-    mode: InputModifier.Mode.Standard({ disableAll: true })
-  })
+  lockPlayerMovement()
+  pauseShooter()
 
   const slots = localRole === 'hider' ? HIDER_SLOTS : SHOOTER_SLOTS
   const dest  = slots[cinematicSlotIndex] ?? slots[0]
-  movePlayerTo({ newRelativePosition: dest, cameraTarget: CINEMATIC_CAM_POS })
+  movePlayerTo({ newRelativePosition: dest })
 
-  cinematicTargetEntity = engine.addEntity()
-  Transform.create(cinematicTargetEntity, { position: CINEMATIC_LOOK_AT_POS })
-
-  cinematicCamEntity = engine.addEntity()
-  Transform.create(cinematicCamEntity, { position: CINEMATIC_CAM_POS })
-  VirtualCamera.create(cinematicCamEntity, {
-    lookAtEntity: cinematicTargetEntity,
-    defaultTransition: { transitionMode: VirtualCamera.Transition.Time(1.5) }
-  })
-  MainCamera.getMutable(engine.CameraEntity).virtualCameraEntity = cinematicCamEntity
-
-  createCinematicWeapon()
   showRoleArrow(localRole)
 }
 
@@ -71,11 +58,31 @@ function stopCinematic() {
     engine.removeEntity(cinematicTargetEntity)
     cinematicTargetEntity = undefined
   }
+  hideRoleArrow()
+}
+
+function lockPlayerMovement() {
+  InputModifier.createOrReplace(engine.PlayerEntity, {
+    mode: InputModifier.Mode.Standard({ disableAll: true })
+  })
+}
+
+function unlockPlayerMovement() {
   if (InputModifier.has(engine.PlayerEntity)) {
     InputModifier.deleteFrom(engine.PlayerEntity)
   }
-  removeCinematicWeapon()
-  hideRoleArrow()
+}
+
+function movePlayerAndUnlock(position: { x: number, y: number, z: number }) {
+  movePlayerTo({ newRelativePosition: position })
+    .catch(() => {})
+    .finally(() => unlockPlayerMovement())
+}
+
+function movePlayerAndThen(position: { x: number, y: number, z: number }, afterMove: () => void) {
+  movePlayerTo({ newRelativePosition: position })
+    .catch(() => {})
+    .finally(afterMove)
 }
 
 // Shared UI state — read by ui.tsx every render frame
@@ -139,6 +146,7 @@ export function initClient() {
 
     if (data.phase === 'lobby') {
       stopCinematic()
+      unlockPlayerMovement()
       resetVisibility()
       clearShooterWeapons()
       resetForLobby()
@@ -159,7 +167,9 @@ export function initClient() {
       if (localRole === 'hider') {
         stopCinematic()
         reattachProp()
-        movePlayerTo({ newRelativePosition: HIDER_SPAWN })
+        movePlayerAndUnlock(HIDER_SPAWN)
+      } else {
+        disableShooterLoadout()
       }
       // Shooters stay on their boat with camera and movement locked until playing
     }
@@ -170,12 +180,19 @@ export function initClient() {
       uiState.eliminated         = false
       uiState.playingSecondsLeft = 180
       if (localRole === 'shooter') {
-        movePlayerTo({ newRelativePosition: HIDER_SPAWN })
+        disableShooterLoadout()
+        movePlayerAndThen(HIDER_SPAWN, () => {
+          enableShooterLoadout()
+          unlockPlayerMovement()
+        })
+      } else {
+        unlockPlayerMovement()
       }
     }
 
     if (data.phase === 'results') {
       stopCinematic()
+      unlockPlayerMovement()
     }
   })
 
