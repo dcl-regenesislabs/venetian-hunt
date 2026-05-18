@@ -123,7 +123,7 @@ export function enableShooterLoadout() {
   if (camAreaEntity === undefined) {
     camAreaEntity = engine.addEntity()
     Transform.create(camAreaEntity, { parent: engine.PlayerEntity, position: { x: 0, y: 0, z: 0 } })
-    CameraModeArea.create(camAreaEntity, { area: { x: 0.5, y: 2, z: 0.5 }, mode: CameraType.CT_FIRST_PERSON })
+    CameraModeArea.create(camAreaEntity, { area: { x: 4, y: 3, z: 4 }, mode: CameraType.CT_FIRST_PERSON })
   }
 
   activateShooter()
