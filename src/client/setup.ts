@@ -1,4 +1,5 @@
 import { engine, PlayerIdentityData, MainCamera, InputModifier, Transform, Entity } from '@dcl/sdk/ecs'
+import { DisguisedPlayersComponent } from '../shared/schemas'
 import { isStateSyncronized } from '@dcl/sdk/network'
 import { movePlayerTo } from '~system/RestrictedActions'
 import { room } from '../shared/messages'
@@ -28,6 +29,8 @@ const SHOOTER_SLOTS = [
 ]
 const CINEMATIC_CAM_POS     = { x: 43.5,   y: 5.0, z: -3.0  }
 const CINEMATIC_LOOK_AT_POS = { x: 43.625, y: 3.0, z: 6.75  }
+
+const DISGUISED_ENTITY = 3 as Entity
 
 let synced             = false
 let localRole: 'hider' | 'shooter' = 'hider'
@@ -114,6 +117,21 @@ export function initClient() {
     }
   })
 
+  // Rebuild visibility from CRDT every frame during hiding/playing — self-corrects mobile issues
+  engine.addSystem(() => {
+    const phase = uiState.phase
+    if (phase !== 'hiding' && phase !== 'playing') return
+    const myAddress  = PlayerIdentityData.getOrNull(engine.PlayerEntity)?.address?.toLowerCase()
+    const disguised  = DisguisedPlayersComponent.getOrNull(DISGUISED_ENTITY)
+    const disguisedSet = new Set(disguised?.disguises.map(d => d.address.toLowerCase()) ?? [])
+    for (const [, identity] of engine.getEntitiesWith(PlayerIdentityData)) {
+      const addr = identity.address?.toLowerCase()
+      if (!addr || addr === myAddress) continue
+      if (disguisedSet.has(addr)) removeVisiblePlayer(addr)
+      else                        addVisiblePlayer(addr)
+    }
+  })
+
   // --- Roles ---
   room.onMessage('rolesAssigned', (data) => {
     console.log('[Client] Roles assigned — shooters:', data.shooters)
@@ -148,6 +166,10 @@ export function initClient() {
       stopCinematic()
       unlockPlayerMovement()
       resetVisibility()
+      for (const [, identity] of engine.getEntitiesWith(PlayerIdentityData)) {
+        const addr = identity.address?.toLowerCase()
+        if (addr) addVisiblePlayer(addr)
+      }
       clearShooterWeapons()
       resetForLobby()
       clearAllProps()
