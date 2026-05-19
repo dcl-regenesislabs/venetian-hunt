@@ -13,7 +13,7 @@ import { onHiderHit } from './hiderHealth'
 import { spawnRandomProps, clearProps } from '../props'
 
 const SPAWN       = { x: 43.5, y: 2.75, z: 4 }
-const HIDER_SPAWN = { x: 47.1, y: 5,    z: 56.4 }
+const HIDER_SPAWN = { x: 48.1, y: 6,    z: 57.4 }
 
 // center, left, right slots — world positions computed from composite (boat scale 1.2, no rotation)
 const HIDER_SLOTS = [
@@ -68,9 +68,9 @@ function lockPlayerMovement() {
 }
 
 function unlockPlayerMovement() {
-  if (InputModifier.has(engine.PlayerEntity)) {
-    InputModifier.deleteFrom(engine.PlayerEntity)
-  }
+  InputModifier.createOrReplace(engine.PlayerEntity, {
+    mode: InputModifier.Mode.Standard({ disableAll: false })
+  })
 }
 
 function movePlayerAndUnlock(position: { x: number, y: number, z: number }) {
@@ -166,8 +166,9 @@ export function initClient() {
       pauseShooter()
       if (localRole === 'hider') {
         stopCinematic()
+        unlockPlayerMovement()
         reattachProp()
-        movePlayerAndUnlock(HIDER_SPAWN)
+        movePlayerTo({ newRelativePosition: HIDER_SPAWN }).catch(() => {})
       } else {
         disableShooterLoadout()
       }
