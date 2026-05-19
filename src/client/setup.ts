@@ -1,4 +1,5 @@
 import { engine, PlayerIdentityData, MainCamera, InputModifier, Transform, Entity } from '@dcl/sdk/ecs'
+import { GameStateComponent } from '../shared/schemas'
 import { isStateSyncronized } from '@dcl/sdk/network'
 import { movePlayerTo } from '~system/RestrictedActions'
 import { room } from '../shared/messages'
@@ -88,6 +89,7 @@ function movePlayerAndThen(position: { x: number, y: number, z: number }, afterM
 // Shared UI state — read by ui.tsx every render frame
 export const uiState = {
   phase:              'lobby' as string,
+  playerCount:        0,
   hideSecondsLeft:    0,
   playingSecondsLeft: 0,
   hidersLeft:         0,
@@ -98,11 +100,18 @@ export const uiState = {
 
 export function getCurrentPhase() { return uiState.phase }
 
+const GAME_ENTITY = 1 as Entity
+
 export function initClient() {
   engine.addSystem(() => {
     if (synced || !isStateSyncronized()) return
     synced = true
     room.send('playerReady', {})
+  })
+
+  engine.addSystem(() => {
+    const state = GameStateComponent.getOrNull(GAME_ENTITY)
+    if (state) uiState.playerCount = state.playerCount
   })
 
   // Keep all players visible while in lobby (AvatarModifierArea hides everyone by default)

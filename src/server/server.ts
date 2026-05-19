@@ -164,10 +164,13 @@ export function initServer() {
       current.add(identity.address.toLowerCase())
     }
 
+    let changed = false
+
     // Joins
     for (const addr of current) {
       if (!connectedPlayers.has(addr)) {
         connectedPlayers.add(addr)
+        changed = true
         console.log(`[Server] Player joined: ${addr} (${connectedPlayers.size} total)`)
       }
     }
@@ -176,11 +179,15 @@ export function initServer() {
     for (const addr of connectedPlayers) {
       if (!current.has(addr)) {
         connectedPlayers.delete(addr)
+        changed = true
         console.log(`[Server] Player left: ${addr}`)
         onPlayerLeft(addr)
       }
     }
 
+    if (changed) {
+      GameStateComponent.getMutable(gameEntity).playerCount = connectedPlayers.size
+    }
   })
 
   function onPlayerLeft(address: string) {
@@ -192,6 +199,13 @@ export function initServer() {
     disguiseState.disguises = disguiseState.disguises.filter(d => d.address !== address)
     if (disguiseState.disguises.length !== before) {
       room.send('playerUndisguised', { address })
+    }
+
+    // During cinematic/hiding: remove from roles so they don't become a ghost when playing starts
+    if (phase === 'cinematic' || phase === 'hiding') {
+      const roles = RolesComponent.getMutable(rolesEntity)
+      roles.shooters = roles.shooters.filter(a => a !== address)
+      roles.hiders   = roles.hiders.filter(a => a !== address)
     }
 
     // During playing: remove from active hiders

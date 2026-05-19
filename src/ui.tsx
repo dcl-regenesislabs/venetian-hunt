@@ -310,16 +310,10 @@ function formatTime(seconds: number): string {
   return `${m}:${s.toString().padStart(2, '0')}`
 }
 
-function countConnectedPlayers(): number {
-  let n = 0
-  for (const _ of engine.getEntitiesWith(PlayerIdentityData)) n++
-  return n
-}
-
 // ---- Phase panels ----
 
 function LobbyPanel() {
-  const count    = countConnectedPlayers()
+  const count    = uiState.playerCount
   const canStart = count >= 2 && count <= 6
 
   const SLOT_ON:  Color4 = { r: 0.2,  g: 0.85, b: 0.3,  a: 1    }
