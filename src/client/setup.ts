@@ -13,7 +13,7 @@ import { onHiderHit } from './hiderHealth'
 import { spawnRandomProps, clearProps } from '../props'
 
 const SPAWN       = { x: 43.5, y: 2.75, z: 4 }
-const HIDER_SPAWN = { x: 48.1, y: 6,    z: 57.4 }
+const HIDER_SPAWN = { x: 43.1, y: 6,    z: 55.4 }
 
 // center, left, right slots — world positions computed from composite (boat scale 1.2, no rotation)
 const HIDER_SLOTS = [
