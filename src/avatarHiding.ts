@@ -6,10 +6,18 @@ const AREA_SIZE    = { x: 200, y: 100, z: 200 }
 let hideArea: Entity | undefined
 const shooterIds     = new Set<string>()
 const undisguisedIds = new Set<string>()
+let lastExcludeIds:  string[] = []
 
 function applyExcludeIds() {
   if (!hideArea) return
-  AvatarModifierArea.getMutable(hideArea).excludeIds = [...shooterIds, ...undisguisedIds].sort()
+  const next = [...shooterIds, ...undisguisedIds].sort()
+  if (next.length === lastExcludeIds.length && next.every((id, i) => id === lastExcludeIds[i])) return
+  lastExcludeIds = next
+  AvatarModifierArea.createOrReplace(hideArea, {
+    area:       AREA_SIZE,
+    modifiers:  [AvatarModifierType.AMT_HIDE_AVATARS, AvatarModifierType.AMT_DISABLE_PASSPORTS],
+    excludeIds: next,
+  })
 }
 
 export function setupAvatarHiding(): void {
