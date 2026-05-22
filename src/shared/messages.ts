@@ -23,6 +23,7 @@ export const room = registerMessages({
   shooterAim: Schemas.Map({ shooterAddress: Schemas.String, rx: Schemas.Number, ry: Schemas.Number, rz: Schemas.Number, rw: Schemas.Number }),
 
   // Server → Client: game phases & timers
+  lobbyState:       Schemas.Map({ connectedCount: Schemas.Number, readyCount: Schemas.Number, canStart: Schemas.Boolean }),
   gamePhaseChanged: Schemas.Map({ phase: Schemas.String }),  // 'lobby' | 'hiding' | 'playing' | 'results'
   propsSpawned:     Schemas.Map({ seed: Schemas.Number }),
   hideCountdown:    Schemas.Map({ seconds: Schemas.Number }),

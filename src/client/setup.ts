@@ -4,7 +4,7 @@ import { isStateSyncronized } from '@dcl/sdk/network'
 import { movePlayerTo } from '~system/RestrictedActions'
 import { room } from '../shared/messages'
 import { updateShooterIds, addVisiblePlayer, removeVisiblePlayer, resetVisibility } from '../avatarHiding'
-import { onPlayerDisguised, onPlayerUndisguised, blinkPlayerProp, clearAllProps } from './propSystem'
+import { setLocalPlayerAddress, syncRemoteDisguises, onPlayerDisguised, onPlayerUndisguised, blinkPlayerProp, clearAllProps } from './propSystem'
 import { updateShooterWeapons, clearShooterWeapons, updateShooterAim, getShooterMuzzleWorld } from './shooterWeapons'
 import { spawnRemoteBullet, spawnRemoteVfx } from './remoteBullets'
 import { setPlayerRole, blinkLocalProp, resetForLobby, clearLocalProp, reattachProp, showRoleArrow, hideRoleArrow, enableShooterLoadout, disableShooterLoadout } from '../ui'
@@ -37,6 +37,18 @@ let localRole: 'hider' | 'shooter' = 'hider'
 let cinematicSlotIndex = 0
 let cinematicCamEntity:    Entity | undefined
 let cinematicTargetEntity: Entity | undefined
+const knownDisguisedIds = new Set<string>()
+
+function syncKnownDisguisedIdsFromCrdt(): boolean {
+  const disguised = DisguisedPlayersComponent.getOrNull(DISGUISED_ENTITY)
+  if (!disguised) return false
+
+  knownDisguisedIds.clear()
+  for (const entry of disguised.disguises) {
+    knownDisguisedIds.add(entry.address.toLowerCase())
+  }
+  return true
+}
 
 function startCinematic() {
   lockPlayerMovement()
@@ -97,6 +109,10 @@ export const uiState = {
   winner:             '' as '' | 'shooters' | 'hiders',
   eliminated:         false,
   localHealth:        10,
+  serverConnected:    false,
+  lobbyPlayerCount:   0,
+  lobbyReadyCount:    0,
+  lobbyCanStart:      false,
 }
 
 export function getCurrentPhase() { return uiState.phase }
@@ -120,15 +136,19 @@ export function initClient() {
   // Rebuild visibility from CRDT every frame during hiding/playing — self-corrects mobile issues
   engine.addSystem(() => {
     const phase = uiState.phase
+    const myAddress = PlayerIdentityData.getOrNull(engine.PlayerEntity)?.address?.toLowerCase()
+    if (myAddress) setLocalPlayerAddress(myAddress)
     if (phase !== 'hiding' && phase !== 'playing') return
-    const myAddress  = PlayerIdentityData.getOrNull(engine.PlayerEntity)?.address?.toLowerCase()
-    const disguised  = DisguisedPlayersComponent.getOrNull(DISGUISED_ENTITY)
-    const disguisedSet = new Set(disguised?.disguises.map(d => d.address.toLowerCase()) ?? [])
+    const disguised = DisguisedPlayersComponent.getOrNull(DISGUISED_ENTITY)
+    if (disguised) {
+      syncKnownDisguisedIdsFromCrdt()
+      syncRemoteDisguises(disguised.disguises)
+    }
     for (const [, identity] of engine.getEntitiesWith(PlayerIdentityData)) {
       const addr = identity.address?.toLowerCase()
       if (!addr || addr === myAddress) continue
-      if (disguisedSet.has(addr)) removeVisiblePlayer(addr)
-      else                        addVisiblePlayer(addr)
+      if (knownDisguisedIds.has(addr)) removeVisiblePlayer(addr)
+      else                             addVisiblePlayer(addr)
     }
   })
 
@@ -165,6 +185,7 @@ export function initClient() {
     if (data.phase === 'lobby') {
       stopCinematic()
       unlockPlayerMovement()
+      knownDisguisedIds.clear()
       resetVisibility()
       for (const [, identity] of engine.getEntitiesWith(PlayerIdentityData)) {
         const addr = identity.address?.toLowerCase()
@@ -238,16 +259,22 @@ export function initClient() {
     uiState.winner = data.winner as 'shooters' | 'hiders'
   })
 
+  room.onMessage('lobbyState', (data) => {
+    uiState.serverConnected = true
+    uiState.lobbyPlayerCount = data.connectedCount
+    uiState.lobbyReadyCount  = data.readyCount
+    uiState.lobbyCanStart    = data.canStart
+  })
+
   // --- Disguises ---
   room.onMessage('playerDisguised', (data) => {
-    const myAddress = PlayerIdentityData.getOrNull(engine.PlayerEntity)?.address?.toLowerCase()
-    if (data.address.toLowerCase() !== myAddress) {
-      onPlayerDisguised(data.address, data.propSrc)
-    }
+    knownDisguisedIds.add(data.address.toLowerCase())
+    onPlayerDisguised(data.address, data.propSrc)
     removeVisiblePlayer(data.address)
   })
 
   room.onMessage('playerUndisguised', (data) => {
+    knownDisguisedIds.delete(data.address.toLowerCase())
     onPlayerUndisguised(data.address)
     addVisiblePlayer(data.address)
   })
