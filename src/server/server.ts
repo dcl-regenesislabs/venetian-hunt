@@ -51,8 +51,23 @@ export function initServer() {
 
   // --- Runtime state ---
   const connectedPlayers = new Set<string>()
+  const readyPlayers     = new Set<string>()
   let activeHiders       = new Set<string>()
   const hiderHealth      = new Map<string, number>()
+
+  function getLobbyPlayerAddresses() {
+    return [...readyPlayers]
+  }
+
+  function broadcastLobbyState() {
+    const phase = GameStateComponent.get(gameEntity).phase
+    const readyCount = readyPlayers.size
+    room.send('lobbyState', {
+      connectedCount: connectedPlayers.size,
+      readyCount,
+      canStart: phase === 'lobby' && readyCount >= MIN_PLAYERS && readyCount <= MAX_PLAYERS,
+    })
+  }
 
   // --- Single-slot timer ---
   let timerSecondsLeft = 0
@@ -92,7 +107,7 @@ export function initServer() {
 
   // --- Phase transitions ---
   function startCinematicPhase() {
-    const roles = assignRoles([...connectedPlayers])
+    const roles = assignRoles(getLobbyPlayerAddresses())
     RolesComponent.createOrReplace(rolesEntity, roles)
     DisguisedPlayersComponent.createOrReplace(disguisedEntity, { disguises: [] })
     GameStateComponent.createOrReplace(gameEntity, { phase: 'cinematic' })
@@ -154,6 +169,7 @@ export function initServer() {
     DisguisedPlayersComponent.createOrReplace(disguisedEntity, { disguises: [] })
     GameStateComponent.createOrReplace(gameEntity, { phase: 'lobby' })
     room.send('gamePhaseChanged', { phase: 'lobby' })
+    broadcastLobbyState()
     console.log('[Server] Lobby reset')
   }
 
@@ -169,6 +185,7 @@ export function initServer() {
       if (!connectedPlayers.has(addr)) {
         connectedPlayers.add(addr)
         console.log(`[Server] Player joined: ${addr} (${connectedPlayers.size} total)`)
+        broadcastLobbyState()
       }
     }
 
@@ -176,8 +193,10 @@ export function initServer() {
     for (const addr of connectedPlayers) {
       if (!current.has(addr)) {
         connectedPlayers.delete(addr)
+        readyPlayers.delete(addr)
         console.log(`[Server] Player left: ${addr}`)
         onPlayerLeft(addr)
+        broadcastLobbyState()
       }
     }
 
@@ -204,7 +223,7 @@ export function initServer() {
     }
 
     // Drop below min players mid-game → reset
-    if (phase !== 'lobby' && phase !== 'results' && connectedPlayers.size < MIN_PLAYERS) {
+    if (phase !== 'lobby' && phase !== 'results' && readyPlayers.size < MIN_PLAYERS) {
       cancelTimer()
       resetToLobby()
     }
@@ -287,14 +306,18 @@ export function initServer() {
 
   room.onMessage('playerReady', (_, context) => {
     if (!context) return
+    const address = context.from.toLowerCase()
+    if (!connectedPlayers.has(address)) return
+    readyPlayers.add(address)
     console.log(`[Server] playerReady from ${context.from}`)
+    broadcastLobbyState()
   })
 
   room.onMessage('startGame', (_, context) => {
     if (!context) return
     const phase = GameStateComponent.get(gameEntity).phase
     if (phase !== 'lobby') return
-    if (connectedPlayers.size < MIN_PLAYERS || connectedPlayers.size > MAX_PLAYERS) return
+    if (readyPlayers.size < MIN_PLAYERS || readyPlayers.size > MAX_PLAYERS) return
     console.log(`[Server] Game started by ${context.from}`)
     startCinematicPhase()
   })

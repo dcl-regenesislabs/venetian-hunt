@@ -1,9 +1,10 @@
 import { engine, PlayerIdentityData, MainCamera, InputModifier, Transform, Entity } from '@dcl/sdk/ecs'
+import { DisguisedPlayersComponent } from '../shared/schemas'
 import { isStateSyncronized } from '@dcl/sdk/network'
 import { movePlayerTo } from '~system/RestrictedActions'
 import { room } from '../shared/messages'
 import { updateShooterIds, addVisiblePlayer, removeVisiblePlayer, resetVisibility } from '../avatarHiding'
-import { onPlayerDisguised, onPlayerUndisguised, blinkPlayerProp, clearAllProps } from './propSystem'
+import { setLocalPlayerAddress, syncRemoteDisguises, onPlayerDisguised, onPlayerUndisguised, blinkPlayerProp, clearAllProps } from './propSystem'
 import { updateShooterWeapons, clearShooterWeapons, updateShooterAim, getShooterMuzzleWorld } from './shooterWeapons'
 import { spawnRemoteBullet, spawnRemoteVfx } from './remoteBullets'
 import { setPlayerRole, blinkLocalProp, resetForLobby, clearLocalProp, reattachProp, showRoleArrow, hideRoleArrow, enableShooterLoadout, disableShooterLoadout } from '../ui'
@@ -13,7 +14,7 @@ import { onHiderHit } from './hiderHealth'
 import { spawnRandomProps, clearProps } from '../props'
 
 const SPAWN       = { x: 43.5, y: 2.75, z: 4 }
-const HIDER_SPAWN = { x: 47.1, y: 5,    z: 56.4 }
+const HIDER_SPAWN = { x: 43.1, y: 6,    z: 55.4 }
 
 // center, left, right slots — world positions computed from composite (boat scale 1.2, no rotation)
 const HIDER_SLOTS = [
@@ -29,11 +30,25 @@ const SHOOTER_SLOTS = [
 const CINEMATIC_CAM_POS     = { x: 43.5,   y: 5.0, z: -3.0  }
 const CINEMATIC_LOOK_AT_POS = { x: 43.625, y: 3.0, z: 6.75  }
 
+const DISGUISED_ENTITY = 3 as Entity
+
 let synced             = false
 let localRole: 'hider' | 'shooter' = 'hider'
 let cinematicSlotIndex = 0
 let cinematicCamEntity:    Entity | undefined
 let cinematicTargetEntity: Entity | undefined
+const knownDisguisedIds = new Set<string>()
+
+function syncKnownDisguisedIdsFromCrdt(): boolean {
+  const disguised = DisguisedPlayersComponent.getOrNull(DISGUISED_ENTITY)
+  if (!disguised) return false
+
+  knownDisguisedIds.clear()
+  for (const entry of disguised.disguises) {
+    knownDisguisedIds.add(entry.address.toLowerCase())
+  }
+  return true
+}
 
 function startCinematic() {
   lockPlayerMovement()
@@ -68,9 +83,9 @@ function lockPlayerMovement() {
 }
 
 function unlockPlayerMovement() {
-  if (InputModifier.has(engine.PlayerEntity)) {
-    InputModifier.deleteFrom(engine.PlayerEntity)
-  }
+  InputModifier.createOrReplace(engine.PlayerEntity, {
+    mode: InputModifier.Mode.Standard({ disableAll: false })
+  })
 }
 
 function movePlayerAndUnlock(position: { x: number, y: number, z: number }) {
@@ -94,6 +109,10 @@ export const uiState = {
   winner:             '' as '' | 'shooters' | 'hiders',
   eliminated:         false,
   localHealth:        10,
+  serverConnected:    false,
+  lobbyPlayerCount:   0,
+  lobbyReadyCount:    0,
+  lobbyCanStart:      false,
 }
 
 export function getCurrentPhase() { return uiState.phase }
@@ -111,6 +130,25 @@ export function initClient() {
     for (const [, identity] of engine.getEntitiesWith(PlayerIdentityData)) {
       const addr = identity.address?.toLowerCase()
       if (addr) addVisiblePlayer(addr)
+    }
+  })
+
+  // Rebuild visibility from CRDT every frame during hiding/playing — self-corrects mobile issues
+  engine.addSystem(() => {
+    const phase = uiState.phase
+    const myAddress = PlayerIdentityData.getOrNull(engine.PlayerEntity)?.address?.toLowerCase()
+    if (myAddress) setLocalPlayerAddress(myAddress)
+    if (phase !== 'hiding' && phase !== 'playing') return
+    const disguised = DisguisedPlayersComponent.getOrNull(DISGUISED_ENTITY)
+    if (disguised) {
+      syncKnownDisguisedIdsFromCrdt()
+      syncRemoteDisguises(disguised.disguises)
+    }
+    for (const [, identity] of engine.getEntitiesWith(PlayerIdentityData)) {
+      const addr = identity.address?.toLowerCase()
+      if (!addr || addr === myAddress) continue
+      if (knownDisguisedIds.has(addr)) removeVisiblePlayer(addr)
+      else                             addVisiblePlayer(addr)
     }
   })
 
@@ -147,7 +185,12 @@ export function initClient() {
     if (data.phase === 'lobby') {
       stopCinematic()
       unlockPlayerMovement()
+      knownDisguisedIds.clear()
       resetVisibility()
+      for (const [, identity] of engine.getEntitiesWith(PlayerIdentityData)) {
+        const addr = identity.address?.toLowerCase()
+        if (addr) addVisiblePlayer(addr)
+      }
       clearShooterWeapons()
       resetForLobby()
       clearAllProps()
@@ -166,8 +209,9 @@ export function initClient() {
       pauseShooter()
       if (localRole === 'hider') {
         stopCinematic()
+        unlockPlayerMovement()
         reattachProp()
-        movePlayerAndUnlock(HIDER_SPAWN)
+        movePlayerTo({ newRelativePosition: HIDER_SPAWN }).catch(() => {})
       } else {
         disableShooterLoadout()
       }
@@ -215,16 +259,22 @@ export function initClient() {
     uiState.winner = data.winner as 'shooters' | 'hiders'
   })
 
+  room.onMessage('lobbyState', (data) => {
+    uiState.serverConnected = true
+    uiState.lobbyPlayerCount = data.connectedCount
+    uiState.lobbyReadyCount  = data.readyCount
+    uiState.lobbyCanStart    = data.canStart
+  })
+
   // --- Disguises ---
   room.onMessage('playerDisguised', (data) => {
-    const myAddress = PlayerIdentityData.getOrNull(engine.PlayerEntity)?.address?.toLowerCase()
-    if (data.address.toLowerCase() !== myAddress) {
-      onPlayerDisguised(data.address, data.propSrc)
-    }
+    knownDisguisedIds.add(data.address.toLowerCase())
+    onPlayerDisguised(data.address, data.propSrc)
     removeVisiblePlayer(data.address)
   })
 
   room.onMessage('playerUndisguised', (data) => {
+    knownDisguisedIds.delete(data.address.toLowerCase())
     onPlayerUndisguised(data.address)
     addVisiblePlayer(data.address)
   })

@@ -8,7 +8,7 @@ import {
   Entity
 } from '@dcl/sdk/ecs'
 import { applyPropComponents, primitiveDisguiseTransform, PRIMITIVE_CYLINDER } from './propUtils'
-import { blinkEntity, stopBlinkingEntity } from './client/propSystem'
+import { blinkEntity, stopBlinkingEntity } from './client/propSystem' 
 import { room } from './shared/messages'
 import { addVisiblePlayer, removeVisiblePlayer } from './avatarHiding'
 import { Color4, Quaternion } from '@dcl/sdk/math'
@@ -310,23 +310,27 @@ function formatTime(seconds: number): string {
   return `${m}:${s.toString().padStart(2, '0')}`
 }
 
-function countConnectedPlayers(): number {
-  let n = 0
-  for (const _ of engine.getEntitiesWith(PlayerIdentityData)) n++
-  return n
-}
-
 // ---- Phase panels ----
 
 function LobbyPanel() {
-  const count    = countConnectedPlayers()
-  const canStart = count >= 2 && count <= 6
+  const count    = uiState.lobbyPlayerCount
+  const canStart = uiState.serverConnected && uiState.lobbyCanStart
+  const allReady = count === uiState.lobbyReadyCount
 
   const SLOT_ON:  Color4 = { r: 0.2,  g: 0.85, b: 0.3,  a: 1    }
   const SLOT_OFF: Color4 = { r: 0.2,  g: 0.2,  b: 0.2,  a: 1    }
   const ONLINE:   Color4 = { r: 0.15, g: 0.75, b: 0.3,  a: 1    }
+  const OFFLINE:  Color4 = { r: 0.45, g: 0.45, b: 0.45, a: 1    }
   const BTN_DIM:  Color4 = { r: 0.18, g: 0.18, b: 0.18, a: 1    }
-  const statusMsg = count < 2 ? 'Waiting for more players...' : count > 6 ? 'Too many players (max 6)' : 'Ready to start!'
+  const statusMsg = !uiState.serverConnected
+    ? 'Connecting to server...'
+    : count < 2
+      ? 'Waiting for more players...'
+      : count > 6
+        ? 'Too many players (max 6)'
+        : !allReady
+          ? 'Waiting for players to sync...'
+          : 'Ready to start!'
 
   return (
     <UiEntity
@@ -342,8 +346,8 @@ function LobbyPanel() {
         uiBackground={{ color: { r: 0.08, g: 0.08, b: 0.08, a: 0.95 } }}
       >
         <UiEntity uiTransform={{ flexDirection: 'row', alignItems: 'center' }}>
-          <UiEntity uiTransform={{ width: 10, height: 10, borderRadius: 5, margin: { right: 8 } }} uiBackground={{ color: ONLINE }} />
-          <OutlinedLabel value="SERVER ONLINE" width={160} height={32} fontSize={16} color={ONLINE} />
+          <UiEntity uiTransform={{ width: 10, height: 10, borderRadius: 5, margin: { right: 8 } }} uiBackground={{ color: uiState.serverConnected ? ONLINE : OFFLINE }} />
+          <OutlinedLabel value={uiState.serverConnected ? 'SERVER CONNECTED' : 'CONNECTING'} width={180} height={32} fontSize={16} color={uiState.serverConnected ? ONLINE : OFFLINE} />
         </UiEntity>
         <OutlinedLabel value={`${count} / 6 players`} width={120} height={32} fontSize={16} color={WHITE} />
       </UiEntity>
@@ -385,7 +389,17 @@ function LobbyPanel() {
           onMouseDown={() => { if (canStart) room.send('startGame', {}) }}
         >
           <Label
-            value={canStart ? 'START GAME' : count < 2 ? 'Need 2+ players' : 'Max 6 players'}
+            value={
+              canStart
+                ? 'START GAME'
+                : !uiState.serverConnected
+                  ? 'Connecting...'
+                  : count < 2
+                    ? 'Need 2+ players'
+                    : count > 6
+                      ? 'Max 6 players'
+                      : 'Syncing players...'
+            }
             uiTransform={{ width: 380, height: 52 }}
             textAlign="middle-center"
             fontSize={24}
