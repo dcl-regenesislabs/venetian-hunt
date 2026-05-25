@@ -10,7 +10,6 @@ import {
 import { applyPropComponents, primitiveDisguiseTransform, PRIMITIVE_CYLINDER } from './propUtils'
 import { blinkEntity, stopBlinkingEntity } from './client/propSystem' 
 import { room } from './shared/messages'
-import { addVisiblePlayer, removeVisiblePlayer } from './avatarHiding'
 import { Color4, Quaternion } from '@dcl/sdk/math'
 import { activateShooter, deactivateShooter, getLastShotMs, setWeaponEntity } from './client/shooterSystem'
 import { uiState } from './client/setup'
@@ -94,13 +93,10 @@ function attachProp(src: string) {
     engine.removeEntity(propEntity)
     propEntity = undefined
   }
-  const myAddress = PlayerIdentityData.getOrNull(engine.PlayerEntity)?.address?.toLowerCase()
   if (src === '') {
     room.send('undisguise', {})
-    if (myAddress) addVisiblePlayer(myAddress)
     return
   }
-  if (myAddress) removeVisiblePlayer(myAddress)
   room.send('selectProp', { propSrc: src })
   propEntity = engine.addEntity()
   applyPropComponents(propEntity, src, true)
@@ -183,8 +179,6 @@ export function clearLocalProp() {
     engine.removeEntity(propEntity)
     propEntity = undefined
   }
-  const myAddress = PlayerIdentityData.getOrNull(engine.PlayerEntity)?.address?.toLowerCase()
-  if (myAddress) addVisiblePlayer(myAddress)
 }
 
 export function createCinematicWeapon() {
@@ -407,6 +401,7 @@ function LobbyPanel() {
           />
         </UiEntity>
       </UiEntity>
+
     </UiEntity>
   )
 }
