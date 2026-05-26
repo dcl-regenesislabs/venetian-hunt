@@ -11,12 +11,14 @@ import { applyPropComponents, primitiveDisguiseTransform, PRIMITIVE_CYLINDER, ge
 import { blinkEntity, stopBlinkingEntity } from './client/propSystem' 
 import { room } from './shared/messages'
 import { Color4, Quaternion } from '@dcl/sdk/math'
-import { activateShooter, deactivateShooter, getLastShotMs, setWeaponEntity } from './client/shooterSystem'
+import { activateShooter, deactivateShooter, getLastShotMs, setWeaponEntity, tryFireBulletFromUi } from './client/shooterSystem'
 import { uiState } from './client/setup'
 
 const WEAPON_SRC  = 'assets/scene/Models/low-poly_agm-1.glb'
 const ARROW_GREEN = 'assets/asset-packs/arrow_green/arrow-green.glb'
 const ARROW_RED   = 'assets/asset-packs/arrow/arrow.glb'
+const SHOOT_BUTTON_SRC = 'assets/images/shoot_button.png'
+const SHOOT_BUTTON_PRESSED_SRC = 'assets/images/shoot_button_pressed.png'
 
 const PROPS = [
   { name: 'Chair',          thumbnail: 'assets/images/props/chair.png',        src: 'assets/asset-packs/outdoor_chair/Chair_07.glb' },
@@ -41,6 +43,7 @@ let roleArrowEntity: Entity | undefined
 let disguisePulseToken = 0
 let shouldPulseDisguiseCamera = true
 let playerRole: 'hider' | 'shooter' = 'hider'
+let mobileShootButtonPressedUntil = 0
 
 // ── Debug mode ────────────────────────────────────────────────────
 // Set DEBUG = true to preview UI panels in-world without playing.
@@ -544,6 +547,28 @@ function PlayingHUD() {
   )
 }
 
+function MobileShootButton() {
+  const pressed = Date.now() < mobileShootButtonPressedUntil
+  const src = pressed ? SHOOT_BUTTON_PRESSED_SRC : SHOOT_BUTTON_SRC
+
+  return (
+    <UiEntity
+      uiTransform={{
+        width: 120,
+        height: 120,
+        positionType: 'absolute',
+        position: { right: 460, top: '50%' },
+        margin: { top: -90 },
+      }}
+      uiBackground={{ texture: { src }, textureMode: 'stretch' }}
+      onMouseDown={() => {
+        mobileShootButtonPressedUntil = Date.now() + 140
+        tryFireBulletFromUi()
+      }}
+    />
+  )
+}
+
 function CinematicPanel(props: { role?: 'hider' | 'shooter' }) {
   const isHider = (props.role ?? playerRole) === 'hider'
   const KEY_BG:  Color4 = { r: 0, g: 0, b: 0, a: 0.45 }
@@ -683,6 +708,10 @@ function DebugBar(props: { phase: string; role: string }) {
 export const uiMenu = () => {
   const phase      = DEBUG ? DEBUG_PHASES[dbgPhaseIdx] : uiState.phase
   const activeRole = DEBUG ? dbgRole : playerRole
+  const showMobileShootButton =
+    isMobile() &&
+    activeRole === 'shooter' &&
+    (phase === 'hiding' || phase === 'playing')
 
   return (
     <UiEntity uiTransform={{ width: '100%', height: '100%', flexDirection: 'column', alignItems: 'center', justifyContent: 'space-between' }}>
@@ -693,6 +722,7 @@ export const uiMenu = () => {
       {phase === 'hiding'    && activeRole === 'shooter'  && <HidingPanelShooter />}
       {phase === 'playing'   && <PlayingHUD />}
       {phase === 'results'   && <ResultsPanel />}
+      {showMobileShootButton && <MobileShootButton />}
     </UiEntity>
   )
 }

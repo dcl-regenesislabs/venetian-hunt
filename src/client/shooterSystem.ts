@@ -45,6 +45,13 @@ export function deactivateShooter() {
   vfxList.length = 0
 }
 
+export function tryFireBulletFromUi(): boolean {
+  if (!shooterActive || shooterPaused || fireCooldown > 0) return false
+  fireBullet()
+  fireCooldown = FIRE_COOLDOWN
+  return true
+}
+
 engine.addSystem((dt: number) => {
   if (!shooterActive || shooterPaused) return
 
