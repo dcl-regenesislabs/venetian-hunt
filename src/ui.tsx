@@ -7,7 +7,7 @@ import {
   PlayerIdentityData, CameraModeArea, CameraType,
   Entity
 } from '@dcl/sdk/ecs'
-import { applyPropComponents, primitiveDisguiseTransform, PRIMITIVE_CYLINDER } from './propUtils'
+import { applyPropComponents, primitiveDisguiseTransform, PRIMITIVE_CYLINDER, getDisguiseLocalYOffset } from './propUtils'
 import { blinkEntity, stopBlinkingEntity } from './client/propSystem' 
 import { room } from './shared/messages'
 import { Color4, Quaternion } from '@dcl/sdk/math'
@@ -87,27 +87,35 @@ function pulseDisguiseCameraOnMobile() {
   }, 1000)
 }
 
-function attachProp(src: string) {
+function createAttachedProp(src: string, syncToServer: boolean, pulseCamera: boolean) {
   if (propEntity !== undefined) {
     stopBlinkingEntity(propEntity)
     engine.removeEntity(propEntity)
     propEntity = undefined
   }
   if (src === '') {
-    room.send('undisguise', {})
+    if (syncToServer) room.send('undisguise', {})
     return
   }
-  room.send('selectProp', { propSrc: src })
+  if (syncToServer) room.send('selectProp', { propSrc: src })
   propEntity = engine.addEntity()
   applyPropComponents(propEntity, src, true)
   const prim = primitiveDisguiseTransform(src)
   Transform.create(propEntity, {
     parent: engine.PlayerEntity,
-    position: { x: 0, y: prim ? prim.y : -0.1, z: 0 },
+    position: { x: 0, y: getDisguiseLocalYOffset(src, isMobile()), z: 0 },
     scale:    prim ? prim.scale : { x: 1, y: 1, z: 1 },
   })
   VisibilityComponent.createOrReplace(propEntity, { visible: true })
-  pulseDisguiseCameraOnMobile()
+  if (pulseCamera) pulseDisguiseCameraOnMobile()
+}
+
+function attachProp(src: string) {
+  createAttachedProp(src, true, true)
+}
+
+function attachLobbyPreviewProp(src: string) {
+  createAttachedProp(src, false, false)
 }
 
 export function reattachProp() {
@@ -243,6 +251,7 @@ export function setupUi() {
         dbgRole = dbgRole === 'hider' ? 'shooter' : 'hider'
       return
     }
+
     if (playerRole !== 'hider') return
     if (uiState.phase !== 'hiding' && uiState.phase !== 'playing') return
     if (inputSystem.isTriggered(InputAction.IA_PRIMARY, PointerEventType.PET_DOWN)) {

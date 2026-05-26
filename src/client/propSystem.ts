@@ -1,5 +1,6 @@
 import { engine, Entity, Transform, PlayerIdentityData, VisibilityComponent } from '@dcl/sdk/ecs'
-import { applyPropComponents, primitiveDisguiseTransform } from '../propUtils'
+import { isMobile } from '@dcl/sdk/platform'
+import { applyPropComponents, primitiveDisguiseTransform, getDisguiseRemoteYOffset } from '../propUtils'
 import { createHealthBar, removeHealthBar, clearAllHealthBars } from './hiderHealth'
 
 // World-space prop entities for OTHER disguised players (not local)
@@ -45,13 +46,14 @@ function createRemoteProp(address: string, propSrc: string) {
   const entity = engine.addEntity()
   applyPropComponents(entity, propSrc, true)
   const prim = primitiveDisguiseTransform(propSrc)
+  const remoteYOffset = getDisguiseRemoteYOffset(propSrc, isMobile())
   Transform.create(entity, {
-    position: { x: 0, y: prim ? prim.y - 1000 : -1000, z: 0 },
+    position: { x: 0, y: remoteYOffset - 1000, z: 0 },
     scale:    prim ? prim.scale : { x: 1, y: 1, z: 1 },
   })
   VisibilityComponent.createOrReplace(entity, { visible: true })
   propsByAddress.set(normalized, entity)
-  propYOffset.set(normalized, prim ? prim.y : 0)
+  propYOffset.set(normalized, remoteYOffset)
   propSrcByAddress.set(normalized, propSrc)
   createHealthBar(normalized, entity)
 }
