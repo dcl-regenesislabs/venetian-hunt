@@ -10,7 +10,6 @@ import {
 import { applyPropComponents, primitiveDisguiseTransform, PRIMITIVE_CYLINDER } from './propUtils'
 import { blinkEntity, stopBlinkingEntity } from './client/propSystem' 
 import { room } from './shared/messages'
-import { addVisiblePlayer, removeVisiblePlayer } from './avatarHiding'
 import { Color4, Quaternion } from '@dcl/sdk/math'
 import { activateShooter, deactivateShooter, getLastShotMs, setWeaponEntity } from './client/shooterSystem'
 import { uiState } from './client/setup'
@@ -94,13 +93,10 @@ function attachProp(src: string) {
     engine.removeEntity(propEntity)
     propEntity = undefined
   }
-  const myAddress = PlayerIdentityData.getOrNull(engine.PlayerEntity)?.address?.toLowerCase()
   if (src === '') {
     room.send('undisguise', {})
-    if (myAddress) addVisiblePlayer(myAddress)
     return
   }
-  if (myAddress) removeVisiblePlayer(myAddress)
   room.send('selectProp', { propSrc: src })
   propEntity = engine.addEntity()
   applyPropComponents(propEntity, src, true)
@@ -183,8 +179,6 @@ export function clearLocalProp() {
     engine.removeEntity(propEntity)
     propEntity = undefined
   }
-  const myAddress = PlayerIdentityData.getOrNull(engine.PlayerEntity)?.address?.toLowerCase()
-  if (myAddress) addVisiblePlayer(myAddress)
 }
 
 export function createCinematicWeapon() {
@@ -407,6 +401,7 @@ function LobbyPanel() {
           />
         </UiEntity>
       </UiEntity>
+
     </UiEntity>
   )
 }
@@ -441,6 +436,7 @@ function HidingPanelHider() {
         <OutlinedLabel value={prop.name.toUpperCase()} width={200} height={32} fontSize={20} />
         <OutlinedLabel value="F  ►" width={72} height={52} fontSize={26} />
       </UiEntity>
+
     </UiEntity>
   )
 }
@@ -467,6 +463,7 @@ function HidingPanelShooter() {
         <OutlinedLabel value="Hiders are hiding...  " width={260} height={36} fontSize={18} color={{ r: 0.65, g: 0.65, b: 0.65, a: 1 }} />
         <OutlinedLabel value={`${secs}s`} width={80} height={36} fontSize={24} color={tCol} />
       </UiEntity>
+
     </UiEntity>
   )
 }

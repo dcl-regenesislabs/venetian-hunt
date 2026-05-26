@@ -1,11 +1,17 @@
-import { engine, PlayerIdentityData, MainCamera, InputModifier, Transform, Entity } from '@dcl/sdk/ecs'
-import { DisguisedPlayersComponent } from '../shared/schemas'
+import { engine, PlayerIdentityData, MainCamera, InputModifier, Entity } from '@dcl/sdk/ecs'
+import { DisguisedPlayersComponent, RolesComponent } from '../shared/schemas'
 import { isStateSyncronized } from '@dcl/sdk/network'
 import { movePlayerTo } from '~system/RestrictedActions'
 import { room } from '../shared/messages'
-import { updateShooterIds, addVisiblePlayer, removeVisiblePlayer, resetVisibility } from '../avatarHiding'
+import { activateAvatarHiding, deactivateAvatarHiding } from '../avatarHiding'
 import { setLocalPlayerAddress, syncRemoteDisguises, onPlayerDisguised, onPlayerUndisguised, blinkPlayerProp, clearAllProps } from './propSystem'
-import { updateShooterWeapons, clearShooterWeapons, updateShooterAim, getShooterMuzzleWorld } from './shooterWeapons'
+import {
+  updateShooterWeapons,
+  clearShooterWeapons,
+  setShooterWeaponsVisible,
+  updateShooterAim,
+  getShooterMuzzleWorld,
+} from './shooterWeapons'
 import { spawnRemoteBullet, spawnRemoteVfx } from './remoteBullets'
 import { setPlayerRole, blinkLocalProp, resetForLobby, clearLocalProp, reattachProp, showRoleArrow, hideRoleArrow, enableShooterLoadout, disableShooterLoadout } from '../ui'
 import { pauseShooter, resumeShooter } from './shooterSystem'
@@ -13,41 +19,44 @@ import { playGunshotAt } from './audioManager'
 import { onHiderHit } from './hiderHealth'
 import { spawnRandomProps, clearProps } from '../props'
 
-const SPAWN       = { x: 43.5, y: 2.75, z: 4 }
-const HIDER_SPAWN = { x: 43.1, y: 6,    z: 55.4 }
+const SPAWN = { x: 43.5, y: 2.75, z: 4 }
+const HIDER_SPAWN = { x: 43.1, y: 6, z: 55.4 }
 
-// center, left, right slots — world positions computed from composite (boat scale 1.2, no rotation)
 const HIDER_SLOTS = [
-  { x: 37.65, y: 2.40, z: 6.75 },  // center
-  { x: 36.00, y: 2.50, z: 6.75 },  // left
-  { x: 39.00, y: 2.50, z: 6.75 },  // right
+  { x: 37.65, y: 2.40, z: 6.75 },
+  { x: 36.00, y: 2.50, z: 6.75 },
+  { x: 39.00, y: 2.50, z: 6.75 },
 ]
 const SHOOTER_SLOTS = [
-  { x: 50.45, y: 2.40, z: 6.75 },  // center
-  { x: 48.80, y: 2.50, z: 6.75 },  // left
-  { x: 51.80, y: 2.50, z: 6.75 },  // right
+  { x: 50.45, y: 2.40, z: 6.75 },
+  { x: 48.80, y: 2.50, z: 6.75 },
+  { x: 51.80, y: 2.50, z: 6.75 },
 ]
-const CINEMATIC_CAM_POS     = { x: 43.5,   y: 5.0, z: -3.0  }
-const CINEMATIC_LOOK_AT_POS = { x: 43.625, y: 3.0, z: 6.75  }
 
 const DISGUISED_ENTITY = 3 as Entity
-
-let synced             = false
+const ROLES_ENTITY = 2 as Entity
+let synced = false
 let localRole: 'hider' | 'shooter' = 'hider'
 let cinematicSlotIndex = 0
-let cinematicCamEntity:    Entity | undefined
+let cinematicCamEntity: Entity | undefined
 let cinematicTargetEntity: Entity | undefined
-const knownDisguisedIds = new Set<string>()
+let currentShooterAddresses: string[] = []
 
-function syncKnownDisguisedIdsFromCrdt(): boolean {
-  const disguised = DisguisedPlayersComponent.getOrNull(DISGUISED_ENTITY)
-  if (!disguised) return false
+function syncRolesFromState(myAddress?: string) {
+  const roles = RolesComponent.getOrNull(ROLES_ENTITY)
+  if (!roles) return
 
-  knownDisguisedIds.clear()
-  for (const entry of disguised.disguises) {
-    knownDisguisedIds.add(entry.address.toLowerCase())
-  }
-  return true
+  currentShooterAddresses = roles.shooters.map((address) => address.toLowerCase())
+  uiState.hidersLeft = roles.hiders.length
+
+  if (!myAddress) return
+
+  const nextRole: 'hider' | 'shooter' = roles.hiders.some((h) => h.toLowerCase() === myAddress) ? 'hider' : 'shooter'
+  if (roles.hiders.length + roles.shooters.length === 0) return
+  if (nextRole === localRole) return
+
+  localRole = nextRole
+  setPlayerRole(localRole, true)
 }
 
 function startCinematic() {
@@ -55,7 +64,7 @@ function startCinematic() {
   pauseShooter()
 
   const slots = localRole === 'hider' ? HIDER_SLOTS : SHOOTER_SLOTS
-  const dest  = slots[cinematicSlotIndex] ?? slots[0]
+  const dest = slots[cinematicSlotIndex] ?? slots[0]
   movePlayerTo({ newRelativePosition: dest })
 
   showRoleArrow(localRole)
@@ -78,44 +87,39 @@ function stopCinematic() {
 
 function lockPlayerMovement() {
   InputModifier.createOrReplace(engine.PlayerEntity, {
-    mode: InputModifier.Mode.Standard({ disableAll: true })
+    mode: InputModifier.Mode.Standard({ disableAll: true }),
   })
 }
 
 function unlockPlayerMovement() {
   InputModifier.createOrReplace(engine.PlayerEntity, {
-    mode: InputModifier.Mode.Standard({ disableAll: false })
+    mode: InputModifier.Mode.Standard({ disableAll: false }),
   })
 }
 
-function movePlayerAndUnlock(position: { x: number, y: number, z: number }) {
-  movePlayerTo({ newRelativePosition: position })
-    .catch(() => {})
-    .finally(() => unlockPlayerMovement())
-}
-
-function movePlayerAndThen(position: { x: number, y: number, z: number }, afterMove: () => void) {
+function movePlayerAndThen(position: { x: number; y: number; z: number }, afterMove: () => void) {
   movePlayerTo({ newRelativePosition: position })
     .catch(() => {})
     .finally(afterMove)
 }
 
-// Shared UI state — read by ui.tsx every render frame
 export const uiState = {
-  phase:              'lobby' as string,
-  hideSecondsLeft:    0,
+  phase: 'lobby' as string,
+  hideSecondsLeft: 0,
   playingSecondsLeft: 0,
-  hidersLeft:         0,
-  winner:             '' as '' | 'shooters' | 'hiders',
-  eliminated:         false,
-  localHealth:        10,
-  serverConnected:    false,
-  lobbyPlayerCount:   0,
-  lobbyReadyCount:    0,
-  lobbyCanStart:      false,
+  hidersLeft: 0,
+  winner: '' as '' | 'shooters' | 'hiders',
+  eliminated: false,
+  localHealth: 10,
+  serverConnected: false,
+  lobbyPlayerCount: 0,
+  lobbyReadyCount: 0,
+  lobbyCanStart: false,
 }
 
-export function getCurrentPhase() { return uiState.phase }
+export function getCurrentPhase() {
+  return uiState.phase
+}
 
 export function initClient() {
   engine.addSystem(() => {
@@ -124,56 +128,52 @@ export function initClient() {
     room.send('playerReady', {})
   })
 
-  // Keep all players visible while in lobby (AvatarModifierArea hides everyone by default)
-  engine.addSystem(() => {
-    if (uiState.phase !== 'lobby') return
-    for (const [, identity] of engine.getEntitiesWith(PlayerIdentityData)) {
-      const addr = identity.address?.toLowerCase()
-      if (addr) addVisiblePlayer(addr)
-    }
-  })
-
-  // Rebuild visibility from CRDT every frame during hiding/playing — self-corrects mobile issues
   engine.addSystem(() => {
     const phase = uiState.phase
     const myAddress = PlayerIdentityData.getOrNull(engine.PlayerEntity)?.address?.toLowerCase()
     if (myAddress) setLocalPlayerAddress(myAddress)
-    if (phase !== 'hiding' && phase !== 'playing') return
+    syncRolesFromState(myAddress)
+
+    if (phase !== 'hiding' && phase !== 'playing') {
+      disableShooterLoadout()
+      updateShooterWeapons(currentShooterAddresses, myAddress ?? '', { includeLocal: false, mode: 'active' })
+      setShooterWeaponsVisible(false)
+      deactivateAvatarHiding()
+      return
+    }
+
+    activateAvatarHiding()
+    updateShooterWeapons(currentShooterAddresses, myAddress ?? '', {
+      includeLocal: phase === 'hiding' && localRole === 'shooter',
+      mode: phase === 'hiding' ? 'waiting' : 'active',
+    })
+    setShooterWeaponsVisible(true)
+
     const disguised = DisguisedPlayersComponent.getOrNull(DISGUISED_ENTITY)
     if (disguised) {
-      syncKnownDisguisedIdsFromCrdt()
       syncRemoteDisguises(disguised.disguises)
-    }
-    for (const [, identity] of engine.getEntitiesWith(PlayerIdentityData)) {
-      const addr = identity.address?.toLowerCase()
-      if (!addr || addr === myAddress) continue
-      if (knownDisguisedIds.has(addr)) removeVisiblePlayer(addr)
-      else                             addVisiblePlayer(addr)
     }
   })
 
-  // --- Roles ---
   room.onMessage('rolesAssigned', (data) => {
-    console.log('[Client] Roles assigned — shooters:', data.shooters)
-    updateShooterIds(data.shooters)
+    console.log('[Client] Roles assigned - shooters:', data.shooters)
+    currentShooterAddresses = data.shooters.map((address: string) => address.toLowerCase())
 
     const myAddress = PlayerIdentityData.getOrNull(engine.PlayerEntity)?.address?.toLowerCase()
-    const isHider   = !!myAddress && data.hiders.map((h: string) => h.toLowerCase()).includes(myAddress)
-    localRole      = isHider ? 'hider' : 'shooter'
+    const isHider = !!myAddress && data.hiders.map((h: string) => h.toLowerCase()).includes(myAddress)
+    localRole = isHider ? 'hider' : 'shooter'
     uiState.hidersLeft = data.hiders.length
 
-    // Determine boat slot index (0=center, 1=left, 2=right) based on position in team list
     const myTeam = isHider ? data.hiders : data.shooters
-    const myIdx  = myAddress ? myTeam.findIndex((a: string) => a.toLowerCase() === myAddress) : 0
+    const myIdx = myAddress ? myTeam.findIndex((a: string) => a.toLowerCase() === myAddress) : 0
     cinematicSlotIndex = Math.max(0, myIdx) % 3
 
     uiState.localHealth = 10
-    // skipProp=true: during cinematic hiders appear as avatars; prop is attached when hiding starts
     setPlayerRole(localRole, true)
-    updateShooterWeapons(data.shooters, myAddress ?? '')
+    updateShooterWeapons(currentShooterAddresses, myAddress ?? '', { includeLocal: false, mode: 'active' })
+    setShooterWeaponsVisible(false)
   })
 
-  // --- Phase changes ---
   room.onMessage('gamePhaseChanged', (data) => {
     console.log('[Client] Phase:', data.phase)
     uiState.phase = data.phase
@@ -185,23 +185,18 @@ export function initClient() {
     if (data.phase === 'lobby') {
       stopCinematic()
       unlockPlayerMovement()
-      knownDisguisedIds.clear()
-      resetVisibility()
-      for (const [, identity] of engine.getEntitiesWith(PlayerIdentityData)) {
-        const addr = identity.address?.toLowerCase()
-        if (addr) addVisiblePlayer(addr)
-      }
+      currentShooterAddresses = []
       clearShooterWeapons()
       resetForLobby()
       clearAllProps()
       clearProps()
-      localRole                  = 'hider'
-      cinematicSlotIndex         = 0
-      uiState.hideSecondsLeft    = 0
+      localRole = 'hider'
+      cinematicSlotIndex = 0
+      uiState.hideSecondsLeft = 0
       uiState.playingSecondsLeft = 0
-      uiState.winner             = ''
-      uiState.eliminated         = false
-      uiState.localHealth        = 10
+      uiState.winner = ''
+      uiState.eliminated = false
+      uiState.localHealth = 10
       movePlayerTo({ newRelativePosition: SPAWN })
     }
 
@@ -215,13 +210,12 @@ export function initClient() {
       } else {
         disableShooterLoadout()
       }
-      // Shooters stay on their boat with camera and movement locked until playing
     }
 
     if (data.phase === 'playing') {
       stopCinematic()
       resumeShooter()
-      uiState.eliminated         = false
+      uiState.eliminated = false
       uiState.playingSecondsLeft = 180
       if (localRole === 'shooter') {
         disableShooterLoadout()
@@ -240,19 +234,17 @@ export function initClient() {
     }
   })
 
-  // --- Props ---
   room.onMessage('propsSpawned', (data) => {
     spawnRandomProps(data.seed)
   })
 
-  // --- Timers ---
   room.onMessage('hideCountdown', (data) => {
     uiState.hideSecondsLeft = data.seconds
   })
 
   room.onMessage('playingTimer', (data) => {
     uiState.playingSecondsLeft = data.secondsLeft
-    uiState.hidersLeft         = data.hidersLeft
+    uiState.hidersLeft = data.hidersLeft
   })
 
   room.onMessage('gameResults', (data) => {
@@ -262,24 +254,18 @@ export function initClient() {
   room.onMessage('lobbyState', (data) => {
     uiState.serverConnected = true
     uiState.lobbyPlayerCount = data.connectedCount
-    uiState.lobbyReadyCount  = data.readyCount
-    uiState.lobbyCanStart    = data.canStart
+    uiState.lobbyReadyCount = data.readyCount
+    uiState.lobbyCanStart = data.canStart
   })
 
-  // --- Disguises ---
   room.onMessage('playerDisguised', (data) => {
-    knownDisguisedIds.add(data.address.toLowerCase())
     onPlayerDisguised(data.address, data.propSrc)
-    removeVisiblePlayer(data.address)
   })
 
   room.onMessage('playerUndisguised', (data) => {
-    knownDisguisedIds.delete(data.address.toLowerCase())
     onPlayerUndisguised(data.address)
-    addVisiblePlayer(data.address)
   })
 
-  // --- Combat ---
   room.onMessage('playerHit', (data) => {
     const myAddress = PlayerIdentityData.getOrNull(engine.PlayerEntity)?.address?.toLowerCase()
     if (data.address.toLowerCase() === myAddress) {
@@ -295,7 +281,7 @@ export function initClient() {
     const myAddress = PlayerIdentityData.getOrNull(engine.PlayerEntity)?.address?.toLowerCase()
     if (data.address === myAddress) {
       uiState.localHealth = 0
-      uiState.eliminated  = true
+      uiState.eliminated = true
       clearLocalProp()
       room.send('undisguise', {})
       movePlayerTo({ newRelativePosition: SPAWN })
@@ -316,9 +302,9 @@ export function initClient() {
     if (data.shooterAddress !== myAddress) {
       const rot = { x: data.rx, y: data.ry, z: data.rz, w: data.rw }
       const sentPos = { x: data.px, y: data.py, z: data.pz }
-      const vfxPos = getShooterMuzzleWorld(data.shooterAddress) ?? sentPos
-      spawnRemoteBullet(sentPos, rot)
-      spawnRemoteVfx(vfxPos, rot)
+      const muzzlePos = getShooterMuzzleWorld(data.shooterAddress) ?? sentPos
+      spawnRemoteBullet(muzzlePos, rot)
+      spawnRemoteVfx(muzzlePos, rot)
       playGunshotAt(data.px, data.py, data.pz)
     }
   })
