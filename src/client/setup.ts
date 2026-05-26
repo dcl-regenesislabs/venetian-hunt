@@ -5,7 +5,7 @@ import { movePlayerTo } from '~system/RestrictedActions'
 import { room } from '../shared/messages'
 import { activateAvatarHiding, deactivateAvatarHiding } from '../avatarHiding'
 import { setLocalPlayerAddress, syncRemoteDisguises, onPlayerDisguised, onPlayerUndisguised, blinkPlayerProp, clearAllProps } from './propSystem'
-import { updateShooterWeapons, clearShooterWeapons, setShooterWeaponsVisible, updateShooterAim, getShooterMuzzleWorld } from './shooterWeapons'
+import { updateShooterWeapons, clearShooterWeapons, setShooterWeaponsVisible, updateShooterAim, getShooterMuzzleWorld, setCalibrationMirrorActive } from './shooterWeapons'
 import { spawnRemoteBullet, spawnRemoteVfx } from './remoteBullets'
 import { setPlayerRole, blinkLocalProp, resetForLobby, clearLocalProp, reattachProp, showRoleArrow, hideRoleArrow, enableShooterLoadout, disableShooterLoadout } from '../ui'
 import { pauseShooter, resumeShooter } from './shooterSystem'
@@ -29,6 +29,7 @@ const SHOOTER_SLOTS = [
 
 const DISGUISED_ENTITY = 3 as Entity
 const ROLES_ENTITY = 2 as Entity
+const LOBBY_SHOOTER_CALIBRATION = true
 
 let synced = false
 let localRole: 'hider' | 'shooter' = 'hider'
@@ -129,6 +130,14 @@ export function initClient() {
     if (myAddress) setLocalPlayerAddress(myAddress)
     syncRolesFromState(myAddress)
 
+    if (phase === 'lobby' && LOBBY_SHOOTER_CALIBRATION && myAddress) {
+      setCalibrationMirrorActive(true)
+      activateAvatarHiding()
+      updateShooterWeapons([myAddress], myAddress, { includeLocal: true, mode: 'active' })
+      return
+    }
+
+    setCalibrationMirrorActive(false)
     if (phase !== 'hiding' && phase !== 'playing') {
       updateShooterWeapons(currentShooterAddresses, myAddress ?? '', { includeLocal: false, mode: 'active' })
       setShooterWeaponsVisible(false)
