@@ -12,15 +12,6 @@ import { blinkEntity, stopBlinkingEntity } from './client/propSystem'
 import { room } from './shared/messages'
 import { Color4, Quaternion } from '@dcl/sdk/math'
 import { activateShooter, deactivateShooter, getLastShotMs, setWeaponEntity } from './client/shooterSystem'
-import {
-  getActiveWeaponOffset,
-  getActiveWeaponRotation,
-  getShooterAnimationDebug,
-  nudgeActiveWeaponOffset,
-  nudgeActiveWeaponRotation,
-  resetActiveWeaponOffset,
-  resetActiveWeaponRotation,
-} from './client/shooterWeapons'
 import { uiState } from './client/setup'
 
 const WEAPON_SRC  = 'assets/scene/Models/low-poly_agm-1.glb'
@@ -55,8 +46,6 @@ let playerRole: 'hider' | 'shooter' = 'hider'
 // Set DEBUG = true to preview UI panels in-world without playing.
 // Key 1 (IA_ACTION_3): cycle phase   Key 2 (IA_ACTION_4): toggle role
 export const DEBUG = false
-const SHOOTER_ACTIVE_WEAPON_DEBUG = true
-const SHOOTER_ANIM_DEBUG = false
 const DEBUG_PHASES = ['lobby', 'cinematic', 'hiding', 'playing', 'results'] as const
 let dbgPhaseIdx = 1   // start at 'cinematic'
 let dbgRole: 'hider' | 'shooter' = 'hider'
@@ -448,11 +437,6 @@ function HidingPanelHider() {
         <OutlinedLabel value="F  ►" width={72} height={52} fontSize={26} />
       </UiEntity>
 
-      {SHOOTER_ACTIVE_WEAPON_DEBUG && (
-        <UiEntity uiTransform={{ width: 480, margin: { top: 12 } }}>
-          <ActiveWeaponDebugPanel title="LOBBY ACTIVE WEAPON CALIBRATION" />
-        </UiEntity>
-      )}
     </UiEntity>
   )
 }
@@ -460,8 +444,6 @@ function HidingPanelHider() {
 function HidingPanelShooter() {
   const secs = uiState.hideSecondsLeft
   const tCol = timerColor(secs)
-  const localAddress = PlayerIdentityData.getOrNull(engine.PlayerEntity)?.address?.toLowerCase()
-  const animDebug = getShooterAnimationDebug(localAddress)
   return (
     <UiEntity
       uiTransform={{ width: 460, flexDirection: 'column', alignItems: 'center', positionType: 'absolute', position: { top: 24, left: '50%' }, margin: { left: -230 }, borderRadius: 12 }}
@@ -481,81 +463,6 @@ function HidingPanelShooter() {
         <OutlinedLabel value="Hiders are hiding...  " width={260} height={36} fontSize={18} color={{ r: 0.65, g: 0.65, b: 0.65, a: 1 }} />
         <OutlinedLabel value={`${secs}s`} width={80} height={36} fontSize={24} color={tCol} />
       </UiEntity>
-      {SHOOTER_ANIM_DEBUG && animDebug && <ShooterAnimDebugPanel animDebug={animDebug} marginTop={10} />}
-    </UiEntity>
-  )
-}
-
-function ActiveWeaponDebugPanel(props: { title: string }) {
-  const activeOffset = getActiveWeaponOffset()
-  const activeRotation = getActiveWeaponRotation()
-  return (
-    <UiEntity
-      uiTransform={{
-        width: 420,
-        flexDirection: 'column',
-        alignItems: 'center',
-        padding: { top: 10, bottom: 10 },
-        borderRadius: 10,
-      }}
-      uiBackground={{ color: BG_PANEL }}
-    >
-      <OutlinedLabel value={props.title} width={390} height={24} fontSize={14} color={WHITE} />
-      <OutlinedLabel
-        value={`x:${activeOffset.x.toFixed(2)} y:${activeOffset.y.toFixed(2)} z:${activeOffset.z.toFixed(2)}`}
-        width={390}
-        height={28}
-        fontSize={14}
-        color={YELLOW}
-      />
-      <UiEntity uiTransform={{ width: 390, height: 40, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', margin: { top: 8 } }}>
-        <DebugAdjustButton label="X-" onPress={() => nudgeActiveWeaponOffset('x', -0.02)} />
-        <DebugAdjustButton label="X+" onPress={() => nudgeActiveWeaponOffset('x', 0.02)} />
-        <DebugAdjustButton label="Y-" onPress={() => nudgeActiveWeaponOffset('y', -0.02)} />
-        <DebugAdjustButton label="Y+" onPress={() => nudgeActiveWeaponOffset('y', 0.02)} />
-      </UiEntity>
-      <UiEntity uiTransform={{ width: 300, height: 40, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', margin: { top: 8 } }}>
-        <DebugAdjustButton label="Z-" onPress={() => nudgeActiveWeaponOffset('z', -0.02)} />
-        <DebugAdjustButton label="Z+" onPress={() => nudgeActiveWeaponOffset('z', 0.02)} />
-        <DebugAdjustButton label="RESET POS" onPress={() => resetActiveWeaponOffset()} width={96} />
-      </UiEntity>
-      <OutlinedLabel
-        value={`rx:${activeRotation.x.toFixed(0)} ry:${activeRotation.y.toFixed(0)} rz:${activeRotation.z.toFixed(0)}`}
-        width={390}
-        height={28}
-        fontSize={14}
-        color={WHITE}
-        marginTop={8}
-      />
-      <UiEntity uiTransform={{ width: 390, height: 40, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', margin: { top: 8 } }}>
-        <DebugAdjustButton label="RX-" onPress={() => nudgeActiveWeaponRotation('x', -5)} />
-        <DebugAdjustButton label="RX+" onPress={() => nudgeActiveWeaponRotation('x', 5)} />
-        <DebugAdjustButton label="RY-" onPress={() => nudgeActiveWeaponRotation('y', -5)} />
-        <DebugAdjustButton label="RY+" onPress={() => nudgeActiveWeaponRotation('y', 5)} />
-      </UiEntity>
-      <UiEntity uiTransform={{ width: 300, height: 40, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', margin: { top: 8 } }}>
-        <DebugAdjustButton label="RZ-" onPress={() => nudgeActiveWeaponRotation('z', -5)} />
-        <DebugAdjustButton label="RZ+" onPress={() => nudgeActiveWeaponRotation('z', 5)} />
-        <DebugAdjustButton label="RESET ROT" onPress={() => resetActiveWeaponRotation()} width={96} />
-      </UiEntity>
-    </UiEntity>
-  )
-}
-
-function DebugAdjustButton(props: { label: string; onPress: () => void; width?: number }) {
-  return (
-    <UiEntity
-      uiTransform={{ width: props.width ?? 64, height: 34, alignItems: 'center', justifyContent: 'center', borderRadius: 8 }}
-      uiBackground={{ color: { r: 0.18, g: 0.18, b: 0.18, a: 1 } }}
-      onMouseDown={props.onPress}
-    >
-      <Label
-        value={props.label}
-        uiTransform={{ width: props.width ?? 64, height: 34 }}
-        textAlign="middle-center"
-        fontSize={16}
-        color={WHITE}
-      />
     </UiEntity>
   )
 }
@@ -567,8 +474,6 @@ function PlayingHUD() {
   const hpColor   = hp >= 7 ? GREEN : hp >= 4 ? YELLOW : RED
   const secs      = uiState.playingSecondsLeft
   const tCol      = secs > 30 ? WHITE : secs > 15 ? YELLOW : RED
-  const localAddress = PlayerIdentityData.getOrNull(engine.PlayerEntity)?.address?.toLowerCase()
-  const animDebug = playerRole === 'shooter' ? getShooterAnimationDebug(localAddress) : null
 
   return (
     <UiEntity uiTransform={{ width: '100%', height: '100%', flexDirection: 'column', alignItems: 'center' }}>
@@ -625,46 +530,6 @@ function PlayingHUD() {
           <OutlinedLabel value="You have been found!" width={500} height={40} fontSize={26} marginTop={8} />
         </UiEntity>
       )}
-      {SHOOTER_ANIM_DEBUG && playerRole === 'shooter' && animDebug && (
-        <UiEntity uiTransform={{ positionType: 'absolute', position: { top: 92, right: 24 } }}>
-          <ShooterAnimDebugPanel animDebug={animDebug} />
-        </UiEntity>
-      )}
-    </UiEntity>
-  )
-}
-
-function ShooterAnimDebugPanel(props: {
-  animDebug: {
-    pitchDeg: number
-    runWeight: number
-    idleAimWeight: number
-    idleUpWeight: number
-    idleDownWeight: number
-    runShootWeight: number
-    runUpWeight: number
-    runDownWeight: number
-  }
-  marginTop?: number
-}) {
-  const d = props.animDebug
-  return (
-    <UiEntity
-      uiTransform={{
-        width: 260,
-        flexDirection: 'column',
-        alignItems: 'center',
-        margin: { top: props.marginTop ?? 0 },
-        padding: { top: 10, bottom: 10, left: 10, right: 10 },
-        borderRadius: 10,
-      }}
-      uiBackground={{ color: BG_PANEL }}
-    >
-      <OutlinedLabel value="HUNTER ANIM DEBUG" width={220} height={24} fontSize={14} color={YELLOW} />
-      <OutlinedLabel value={`pitch ${d.pitchDeg.toFixed(1)}  run ${d.runWeight.toFixed(2)}`} width={220} height={22} fontSize={13} />
-      <OutlinedLabel value={`idleAim ${d.idleAimWeight.toFixed(2)}  idleUp ${d.idleUpWeight.toFixed(2)}`} width={220} height={22} fontSize={12} />
-      <OutlinedLabel value={`idleDown ${d.idleDownWeight.toFixed(2)}  runShoot ${d.runShootWeight.toFixed(2)}`} width={220} height={22} fontSize={12} />
-      <OutlinedLabel value={`runUp ${d.runUpWeight.toFixed(2)}  runDown ${d.runDownWeight.toFixed(2)}`} width={220} height={22} fontSize={12} />
     </UiEntity>
   )
 }

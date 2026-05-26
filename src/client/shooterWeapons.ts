@@ -60,21 +60,11 @@ type WeaponEntry = {
   runDownWeight: number
 }
 
-type PreviewEntry = {
-  bodyRootEntity: Entity
-  bodyEntity: Entity
-  rootEntity: Entity
-  pitchRootEntity: Entity
-  modelEntity: Entity
-}
-
 const entriesByAddress = new Map<string, WeaponEntry>()
 const aimByAddress = new Map<string, { x: number; y: number; z: number; w: number }>()
 let includeLocalShooter = false
 let presentationMode: PresentationMode = 'active'
 let currentLocalAddress = ''
-let calibrationMirrorEnabled = false
-let calibrationMirrorPreview: PreviewEntry | undefined
 
 export type ShooterAnimationDebug = {
   pitchDeg: number
@@ -89,14 +79,6 @@ export type ShooterAnimationDebug = {
 
 export function updateShooterAim(shooterAddress: string, rx: number, ry: number, rz: number, rw: number) {
   aimByAddress.set(shooterAddress.toLowerCase(), { x: rx, y: ry, z: rz, w: rw })
-}
-
-export function setCalibrationMirrorActive(active: boolean) {
-  calibrationMirrorEnabled = active
-  if (!active) {
-    destroyPreviewEntry(calibrationMirrorPreview)
-    calibrationMirrorPreview = undefined
-  }
 }
 
 function clamp01(value: number) {
@@ -120,77 +102,6 @@ function getAimPitchDegrees(rotation: { x: number; y: number; z: number; w: numb
 function getAimYawDegrees(rotation: { x: number; y: number; z: number; w: number }) {
   const forward = getForwardFromQuaternion(rotation)
   return Math.atan2(forward.x, forward.z) * 180 / Math.PI
-}
-
-function createPreviewEntry(): PreviewEntry {
-  const bodyRootEntity = engine.addEntity()
-  const bodyEntity = engine.addEntity()
-  const rootEntity = engine.addEntity()
-  const pitchRootEntity = engine.addEntity()
-  const modelEntity = engine.addEntity()
-
-  Transform.create(bodyRootEntity, {
-    position: Vector3.Zero(),
-    rotation: Quaternion.Identity(),
-    scale: Vector3.One(),
-  })
-  Transform.create(bodyEntity, {
-    parent: bodyRootEntity,
-    position: BODY_OFFSET,
-    rotation: BODY_ROTATION,
-    scale: BODY_SCALE,
-  })
-  GltfContainer.create(bodyEntity, {
-    src: SHOOTER_BODY_SRC,
-    invisibleMeshesCollisionMask: ColliderLayer.CL_NONE,
-    visibleMeshesCollisionMask: ColliderLayer.CL_NONE,
-  })
-  Animator.create(bodyEntity, {
-    states: [
-      { clip: BODY_IDLE_CLIP, playing: true, loop: true, weight: 1 },
-      { clip: BODY_RUN_CLIP, playing: true, loop: true, speed: BODY_RUN_SPEED, weight: 0 },
-      { clip: BODY_WAIT_CLIP, playing: true, loop: true, weight: 0 },
-      { clip: BODY_RUN_SHOOT_CLIP, playing: true, loop: true, speed: BODY_RUN_SPEED, weight: 0 },
-      { clip: BODY_AIM_UP_CLIP, playing: true, loop: true, weight: 0 },
-      { clip: BODY_AIM_DOWN_CLIP, playing: true, loop: true, weight: 0 },
-      { clip: BODY_RUN_AIM_UP_CLIP, playing: true, loop: true, speed: BODY_RUN_SPEED, weight: 0 },
-      { clip: BODY_RUN_AIM_DOWN_CLIP, playing: true, loop: true, speed: BODY_RUN_SPEED, weight: 0 },
-    ],
-  })
-
-  Transform.create(rootEntity, {
-    position: Vector3.Zero(),
-    rotation: Quaternion.Identity(),
-    scale: Vector3.One(),
-  })
-  Transform.create(pitchRootEntity, {
-    parent: rootEntity,
-    position: Vector3.Zero(),
-    rotation: Quaternion.Identity(),
-    scale: Vector3.One(),
-  })
-  Transform.create(modelEntity, {
-    parent: pitchRootEntity,
-    position: Vector3.Zero(),
-    rotation: Quaternion.fromEulerDegrees(activeModelRotation.x, activeModelRotation.y, activeModelRotation.z),
-    scale: MODEL_SCALE,
-  })
-  GltfContainer.create(modelEntity, {
-    src: WEAPON_SRC,
-    invisibleMeshesCollisionMask: ColliderLayer.CL_NONE,
-    visibleMeshesCollisionMask: ColliderLayer.CL_NONE,
-  })
-
-  return { bodyRootEntity, bodyEntity, rootEntity, pitchRootEntity, modelEntity }
-}
-
-function destroyPreviewEntry(entry: PreviewEntry | undefined) {
-  if (!entry) return
-  engine.removeEntity(entry.bodyEntity)
-  engine.removeEntity(entry.bodyRootEntity)
-  engine.removeEntity(entry.modelEntity)
-  engine.removeEntity(entry.pitchRootEntity)
-  engine.removeEntity(entry.rootEntity)
 }
 
 export function updateShooterWeapons(
@@ -349,8 +260,6 @@ export function clearShooterWeapons() {
     engine.removeEntity(entry.rootEntity)
   }
   entriesByAddress.clear()
-  destroyPreviewEntry(calibrationMirrorPreview)
-  calibrationMirrorPreview = undefined
 }
 
 export function setShooterWeaponsVisible(visible: boolean) {
@@ -363,8 +272,6 @@ export function setShooterWeaponsVisible(visible: boolean) {
     engine.removeEntity(entry.rootEntity)
   }
   entriesByAddress.clear()
-  destroyPreviewEntry(calibrationMirrorPreview)
-  calibrationMirrorPreview = undefined
 }
 
 export function getWaitingWeaponOffset(): { x: number; y: number; z: number } {
@@ -558,50 +465,4 @@ engine.addSystem((dt) => {
         : Quaternion.fromEulerDegrees(activeModelRotation.x, activeModelRotation.y, activeModelRotation.z)
   }
 
-  if (!calibrationMirrorEnabled || !currentLocalAddress) return
-
-  const localEntry = entriesByAddress.get(currentLocalAddress)
-  const cameraTransform = Transform.getOrNull(engine.CameraEntity)
-  if (!localEntry || !cameraTransform) {
-    destroyPreviewEntry(calibrationMirrorPreview)
-    calibrationMirrorPreview = undefined
-    return
-  }
-
-  if (!calibrationMirrorPreview) {
-    calibrationMirrorPreview = createPreviewEntry()
-  }
-
-  const preview = calibrationMirrorPreview
-  const cameraForward = getForwardFromQuaternion(cameraTransform.rotation)
-  const forwardXZ = Vector3.normalize(Vector3.create(cameraForward.x, 0, cameraForward.z))
-  const previewPos = Vector3.add(localEntry.smoothedPosition, Vector3.scale(forwardXZ, 2.5))
-  const previewYaw = getAimYawDegrees(localEntry.smoothedAimRotation) + 180
-  const previewBodyRot = Quaternion.fromEulerDegrees(0, previewYaw, 0)
-
-  const previewBodyRoot = Transform.getMutable(preview.bodyRootEntity)
-  previewBodyRoot.position = previewPos
-  previewBodyRoot.rotation = previewBodyRot
-
-  const previewRoot = Transform.getMutable(preview.rootEntity)
-  previewRoot.position = Vector3.add(previewPos, Vector3.rotate(activeModelOffset, previewBodyRot))
-  previewRoot.rotation = previewBodyRot
-
-  const previewPitchRoot = Transform.getMutable(preview.pitchRootEntity)
-  previewPitchRoot.rotation = Quaternion.fromEulerDegrees(-localEntry.smoothedPitchDeg, 0, 0)
-
-  const previewModel = Transform.getMutable(preview.modelEntity)
-  previewModel.position = Vector3.Zero()
-  previewModel.rotation = Quaternion.fromEulerDegrees(activeModelRotation.x, activeModelRotation.y, activeModelRotation.z)
-
-  const sourceAnimator = Animator.getMutable(localEntry.bodyEntity)
-  const previewAnimator = Animator.getMutable(preview.bodyEntity)
-  for (const previewState of previewAnimator.states) {
-    const sourceState = sourceAnimator.states.find((state) => state.clip === previewState.clip)
-    if (!sourceState) continue
-    previewState.playing = sourceState.playing
-    previewState.weight = sourceState.weight
-    previewState.speed = sourceState.speed
-    previewState.loop = sourceState.loop
-  }
 })
