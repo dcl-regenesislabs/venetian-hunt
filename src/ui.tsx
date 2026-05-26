@@ -50,7 +50,6 @@ let playerRole: 'hider' | 'shooter' = 'hider'
 let mobileShootButtonPressedUntil = 0
 let leftPropArrowPressedUntil = 0
 let rightPropArrowPressedUntil = 0
-const DEBUG_PROP_SELECTOR_IN_LOBBY = true
 
 // ── Debug mode ────────────────────────────────────────────────────
 // Set DEBUG = true to preview UI panels in-world without playing.
@@ -275,8 +274,7 @@ export function setupUi() {
     if (playerRole !== 'hider') return
     const canPreviewProps =
       uiState.phase === 'hiding' ||
-      uiState.phase === 'playing' ||
-      (DEBUG_PROP_SELECTOR_IN_LOBBY && uiState.phase === 'lobby')
+      uiState.phase === 'playing'
     if (!canPreviewProps) return
     if (inputSystem.isTriggered(InputAction.IA_PRIMARY, PointerEventType.PET_DOWN)) {
       selectPrevProp()
@@ -473,7 +471,7 @@ function PropArrowButton(props: { direction: 'left' | 'right'; onClick: () => vo
 
   return (
     <UiEntity
-      uiTransform={{ width: 68, height: 68 }}
+      uiTransform={{ width: 108, height: 108 }}
       uiBackground={{ texture: { src }, textureMode: 'stretch' }}
       onMouseDown={() => {
         const until = Date.now() + 140
@@ -492,6 +490,7 @@ function PropSelectorBar(props: { bottom: number }) {
     <UiEntity
       uiTransform={{
         width: '100%',
+        height: 120,
         flexDirection: 'row',
         alignItems: 'flex-end',
         justifyContent: 'center',
@@ -501,25 +500,41 @@ function PropSelectorBar(props: { bottom: number }) {
     >
       <UiEntity
         uiTransform={{
-          width: 560,
-          height: 86,
+          width: 640,
+          height: 120,
           flexDirection: 'row',
           alignItems: 'center',
           justifyContent: 'space-between',
-          padding: { left: 18, right: 18 },
+          padding: { left: 24, right: 24 },
           borderRadius: 16,
         }}
       >
         <PropArrowButton direction="left" onClick={selectPrevProp} />
-        <OutlinedLabel value={prop.name.toUpperCase()} width={320} height={44} fontSize={28} color={WHITE} />
+        <OutlinedLabel value={prop.name.toUpperCase()} width={320} height={48} fontSize={28} color={WHITE} />
         <PropArrowButton direction="right" onClick={selectNextProp} />
       </UiEntity>
     </UiEntity>
   )
 }
 
+function DesktopPropSelectorBar(props: { bottom: number }) {
+  const prop = PROPS[selectedIndex]
+
+  return (
+    <UiEntity uiTransform={{ width: '100%', flexDirection: 'row', alignItems: 'flex-end', justifyContent: 'center', positionType: 'absolute', position: { bottom: props.bottom } }}>
+      <UiEntity
+        uiTransform={{ width: 440, height: 64, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: { left: 16, right: 16 }, borderRadius: 12 }}
+        uiBackground={{ color: BG_PANEL }}
+      >
+        <OutlinedLabel value="◄  E" width={72} height={52} fontSize={26} />
+        <OutlinedLabel value={prop.name.toUpperCase()} width={200} height={32} fontSize={20} />
+        <OutlinedLabel value="F  ►" width={72} height={52} fontSize={26} />
+      </UiEntity>
+    </UiEntity>
+  )
+}
+
 function HidingPanelHider() {
-  const prop  = PROPS[selectedIndex]
   const secs  = uiState.hideSecondsLeft
   const tCol  = timerColor(secs)
   return (
@@ -533,15 +548,7 @@ function HidingPanelHider() {
         <OutlinedLabel value="Find the perfect spot to blend in!" width={400} height={26} fontSize={16} marginTop={6} />
       </UiEntity>
 
-      {/* Bottom: prop selector */}
-      <UiEntity
-        uiTransform={{ width: 440, height: 64, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: { left: 16, right: 16 }, borderRadius: 12 }}
-        uiBackground={{ color: BG_PANEL }}
-      >
-        <OutlinedLabel value="◄  E" width={72} height={52} fontSize={26} />
-        <OutlinedLabel value={prop.name.toUpperCase()} width={200} height={32} fontSize={20} />
-        <OutlinedLabel value="F  ►" width={72} height={52} fontSize={26} />
-      </UiEntity>
+      <DesktopPropSelectorBar bottom={64} />
 
     </UiEntity>
   )
@@ -627,7 +634,11 @@ function PlayingHUD() {
         </UiEntity>
       )}
 
-      {playerRole === 'hider' && !uiState.eliminated && <PropSelectorBar bottom={104} />}
+      {playerRole === 'hider' && !uiState.eliminated && (
+        isMobile()
+          ? <PropSelectorBar bottom={104} />
+          : <DesktopPropSelectorBar bottom={64} />
+      )}
 
       {/* Eliminated overlay */}
       {playerRole === 'hider' && uiState.eliminated && (
@@ -665,8 +676,130 @@ function MobileShootButton() {
   )
 }
 
+function MobilePropInstructionsCard() {
+  const THUMB_BG: Color4 = { r: 0.15, g: 0.15, b: 0.15, a: 1 }
+  const currProp = PROPS[selectedIndex]
+
+  return (
+    <UiEntity
+      uiTransform={{
+        width: 420,
+        flexDirection: 'column',
+        alignItems: 'center',
+        positionType: 'absolute',
+        position: { top: 40, left: '50%' },
+        margin: { left: -210 },
+      }}
+    >
+      <UiEntity
+        uiTransform={{ width: 420, height: 68, alignItems: 'center', justifyContent: 'center', borderRadius: 14, margin: { bottom: 10 } }}
+        uiBackground={{ color: { r: 0, g: 0, b: 0, a: 0.85 } }}
+      >
+        <OutlinedLabel value="GET  READY!" width={380} height={58} fontSize={46} color={YELLOW} />
+      </UiEntity>
+
+      <UiEntity
+        uiTransform={{ width: 420, flexDirection: 'column', alignItems: 'center', borderRadius: 16 }}
+        uiBackground={{ color: { r: 0.05, g: 0.22, b: 0.07, a: 0.92 } }}
+      >
+        <UiEntity
+          uiTransform={{ width: 420, height: 58, alignItems: 'center', justifyContent: 'center', borderRadius: 16 }}
+          uiBackground={{ color: { r: 0.12, g: 0.52, b: 0.18, a: 1 } }}
+        >
+          <OutlinedLabel value="PROP TEAM" width={380} height={46} fontSize={30} color={WHITE} />
+        </UiEntity>
+
+        <UiEntity uiTransform={{ width: 370, flexDirection: 'column', alignItems: 'center', padding: { top: 20, bottom: 20 } }}>
+          <UiEntity uiTransform={{ width: 370, flexDirection: 'column', alignItems: 'center' }}>
+            <OutlinedLabel value="Change your shape using the arrows" width={370} height={28} fontSize={18} color={WHITE} />
+            <OutlinedLabel value="to blend in and survive!" width={370} height={28} fontSize={18} color={WHITE} />
+            <UiEntity
+              uiTransform={{ width: 370, height: 100, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', margin: { top: 20 }, borderRadius: 10 }}
+              uiBackground={{ color: { r: 0, g: 0, b: 0, a: 0.45 } }}
+            >
+              <UiEntity
+                uiTransform={{ width: 56, height: 56, margin: { right: 16 } }}
+                uiBackground={{ texture: { src: LEFT_ARROW_SRC }, textureMode: 'stretch' }}
+              />
+              <UiEntity
+                uiTransform={{ width: 76, height: 76, margin: { left: 16, right: 16 }, borderRadius: 8 }}
+                uiBackground={currProp.src !== '' && currProp.thumbnail ? { texture: { src: currProp.thumbnail }, textureMode: 'stretch' } : { color: THUMB_BG }}
+              />
+              <UiEntity
+                uiTransform={{ width: 56, height: 56, margin: { left: 16 } }}
+                uiBackground={{ texture: { src: RIGHT_ARROW_SRC }, textureMode: 'stretch' }}
+              />
+            </UiEntity>
+            <OutlinedLabel value="Survive until time runs out!" width={370} height={28} fontSize={16} marginTop={16} color={YELLOW} />
+          </UiEntity>
+        </UiEntity>
+      </UiEntity>
+    </UiEntity>
+  )
+}
+
+function MobileHunterInstructionsCard() {
+  return (
+    <UiEntity
+      uiTransform={{
+        width: 420,
+        flexDirection: 'column',
+        alignItems: 'center',
+        positionType: 'absolute',
+        position: { top: 40, left: '50%' },
+        margin: { left: -210 },
+      }}
+    >
+      <UiEntity
+        uiTransform={{ width: 420, height: 68, alignItems: 'center', justifyContent: 'center', borderRadius: 14, margin: { bottom: 10 } }}
+        uiBackground={{ color: { r: 0, g: 0, b: 0, a: 0.85 } }}
+      >
+        <OutlinedLabel value="GET  READY!" width={380} height={58} fontSize={46} color={YELLOW} />
+      </UiEntity>
+
+      <UiEntity
+        uiTransform={{ width: 420, flexDirection: 'column', alignItems: 'center', borderRadius: 16 }}
+        uiBackground={{ color: { r: 0.22, g: 0.04, b: 0.04, a: 0.92 } }}
+      >
+        <UiEntity
+          uiTransform={{ width: 420, height: 58, alignItems: 'center', justifyContent: 'center', borderRadius: 16 }}
+          uiBackground={{ color: { r: 0.55, g: 0.08, b: 0.08, a: 1 } }}
+        >
+          <OutlinedLabel value="HUNTER TEAM" width={380} height={46} fontSize={30} color={WHITE} />
+        </UiEntity>
+
+        <UiEntity uiTransform={{ width: 370, flexDirection: 'column', alignItems: 'center', padding: { top: 20, bottom: 20 } }}>
+          <UiEntity uiTransform={{ width: 370, flexDirection: 'column', alignItems: 'center' }}>
+            <OutlinedLabel value="Use your finger to aim" width={370} height={28} fontSize={18} color={WHITE} />
+            <OutlinedLabel value="and press shoot button to shoot." width={370} height={28} fontSize={18} color={WHITE} />
+            <UiEntity
+              uiTransform={{ width: 370, height: 100, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', margin: { top: 20 }, borderRadius: 10 }}
+              uiBackground={{ color: { r: 0, g: 0, b: 0, a: 0.45 } }}
+            >
+              <UiEntity uiTransform={{ width: 130, flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
+                <OutlinedLabel value="+" width={56} height={56} fontSize={38} color={WHITE} />
+                <OutlinedLabel value="AIM" width={100} height={22} fontSize={14} marginTop={6} color={WHITE} />
+              </UiEntity>
+              <UiEntity uiTransform={{ width: 1, height: 70 }} uiBackground={{ color: { r: 1, g: 1, b: 1, a: 0.12 } }} />
+              <UiEntity uiTransform={{ width: 130, flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
+                <UiEntity
+                  uiTransform={{ width: 56, height: 56, borderRadius: 8 }}
+                  uiBackground={{ texture: { src: SHOOT_BUTTON_SRC }, textureMode: 'stretch' }}
+                />
+                <OutlinedLabel value="SHOOT" width={100} height={22} fontSize={14} marginTop={6} color={WHITE} />
+              </UiEntity>
+            </UiEntity>
+            <OutlinedLabel value="Shoot them all to win!" width={370} height={28} fontSize={16} marginTop={16} color={YELLOW} />
+          </UiEntity>
+        </UiEntity>
+      </UiEntity>
+    </UiEntity>
+  )
+}
+
 function CinematicPanel(props: { role?: 'hider' | 'shooter' }) {
   const isHider = (props.role ?? playerRole) === 'hider'
+  const mobile = isMobile()
   const KEY_BG:  Color4 = { r: 0, g: 0, b: 0, a: 0.45 }
   const THUMB_BG: Color4 = { r: 0.15, g: 0.15, b: 0.15, a: 1 }
   const cardBg:   Color4 = isHider ? { r: 0.05, g: 0.22, b: 0.07, a: 0.92 } : { r: 0.22, g: 0.04, b: 0.04, a: 0.92 }
@@ -705,7 +838,7 @@ function CinematicPanel(props: { role?: 'hider' | 'shooter' }) {
         <UiEntity uiTransform={{ width: 370, flexDirection: 'column', alignItems: 'center', padding: { top: 20, bottom: 20 } }}>
           {isHider ? (
             <UiEntity uiTransform={{ width: 370, flexDirection: 'column', alignItems: 'center' }}>
-              <OutlinedLabel value="Change your shape using E and F" width={370} height={28} fontSize={18} color={WHITE} />
+              <OutlinedLabel value={mobile ? 'Change your shape using the arrows' : 'Change your shape using E and F'} width={370} height={28} fontSize={18} color={WHITE} />
               <OutlinedLabel value="to blend in and survive!" width={370} height={28} fontSize={18} color={WHITE} />
               <UiEntity
                 uiTransform={{ width: 370, height: 100, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', margin: { top: 20 }, borderRadius: 10 }}
@@ -812,10 +945,11 @@ export const uiMenu = () => {
   return (
     <UiEntity uiTransform={{ width: '100%', height: '100%', flexDirection: 'column', alignItems: 'center', justifyContent: 'space-between' }}>
       {DEBUG && <DebugBar phase={phase} role={activeRole} />}
-      {phase === 'cinematic' && <CinematicPanel role={activeRole} />}
+      {phase === 'cinematic' && activeRole === 'hider' && isMobile() && <MobilePropInstructionsCard />}
+      {phase === 'cinematic' && activeRole === 'shooter' && isMobile() && <MobileHunterInstructionsCard />}
+      {phase === 'cinematic' && !isMobile() && <CinematicPanel role={activeRole} />}
       {phase === 'lobby'     && <LobbyPanel />}
-      {phase === 'lobby'     && DEBUG_PROP_SELECTOR_IN_LOBBY && <PropSelectorBar bottom={104} />}
-      {phase === 'hiding'    && activeRole === 'hider'   && <HidingPanelHiderV2 />}
+      {phase === 'hiding'    && activeRole === 'hider'   && (isMobile() ? <HidingPanelHiderV2 /> : <HidingPanelHider />)}
       {phase === 'hiding'    && activeRole === 'shooter'  && <HidingPanelShooter />}
       {phase === 'playing'   && <PlayingHUD />}
       {phase === 'results'   && <ResultsPanel />}
