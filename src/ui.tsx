@@ -17,6 +17,10 @@ import { uiState } from './client/setup'
 const WEAPON_SRC  = 'assets/scene/Models/low-poly_agm-1.glb'
 const ARROW_GREEN = 'assets/asset-packs/arrow_green/arrow-green.glb'
 const ARROW_RED   = 'assets/asset-packs/arrow/arrow.glb'
+const LEFT_ARROW_SRC = 'assets/images/left_arrow.png'
+const LEFT_ARROW_PRESSED_SRC = 'assets/images/left_arrow_pressed.png'
+const RIGHT_ARROW_SRC = 'assets/images/right_arrow.png'
+const RIGHT_ARROW_PRESSED_SRC = 'assets/images/right_arrow_pressed.png'
 const SHOOT_BUTTON_SRC = 'assets/images/shoot_button.png'
 const SHOOT_BUTTON_PRESSED_SRC = 'assets/images/shoot_button_pressed.png'
 
@@ -44,6 +48,9 @@ let disguisePulseToken = 0
 let shouldPulseDisguiseCamera = true
 let playerRole: 'hider' | 'shooter' = 'hider'
 let mobileShootButtonPressedUntil = 0
+let leftPropArrowPressedUntil = 0
+let rightPropArrowPressedUntil = 0
+const DEBUG_PROP_SELECTOR_IN_LOBBY = true
 
 // ── Debug mode ────────────────────────────────────────────────────
 // Set DEBUG = true to preview UI panels in-world without playing.
@@ -59,6 +66,16 @@ export function blinkLocalProp() {
 
 export function getCurrentPropSrc(): string {
   return PROPS[selectedIndex].src
+}
+
+function selectPrevProp() {
+  selectedIndex = (selectedIndex - 1 + PROPS.length) % PROPS.length
+  attachProp(PROPS[selectedIndex].src)
+}
+
+function selectNextProp() {
+  selectedIndex = (selectedIndex + 1) % PROPS.length
+  attachProp(PROPS[selectedIndex].src)
 }
 
 function clearDisguiseCameraPulse() {
@@ -256,14 +273,16 @@ export function setupUi() {
     }
 
     if (playerRole !== 'hider') return
-    if (uiState.phase !== 'hiding' && uiState.phase !== 'playing') return
+    const canPreviewProps =
+      uiState.phase === 'hiding' ||
+      uiState.phase === 'playing' ||
+      (DEBUG_PROP_SELECTOR_IN_LOBBY && uiState.phase === 'lobby')
+    if (!canPreviewProps) return
     if (inputSystem.isTriggered(InputAction.IA_PRIMARY, PointerEventType.PET_DOWN)) {
-      selectedIndex = (selectedIndex - 1 + PROPS.length) % PROPS.length
-      attachProp(PROPS[selectedIndex].src)
+      selectPrevProp()
     }
     if (inputSystem.isTriggered(InputAction.IA_SECONDARY, PointerEventType.PET_DOWN)) {
-      selectedIndex = (selectedIndex + 1) % PROPS.length
-      attachProp(PROPS[selectedIndex].src)
+      selectNextProp()
     }
   })
 
@@ -426,6 +445,79 @@ function timerColor(secs: number): Color4 {
   return RED
 }
 
+
+function HidingPanelHiderV2() {
+  const secs  = uiState.hideSecondsLeft
+  const tCol  = timerColor(secs)
+  return (
+    <UiEntity uiTransform={{ width: '100%', height: '100%', flexDirection: 'column', alignItems: 'center', justifyContent: 'space-between', padding: { top: 24, bottom: 64 } }}>
+      <UiEntity
+        uiTransform={{ width: 440, flexDirection: 'column', alignItems: 'center', padding: { top: 14, bottom: 14 }, borderRadius: 12 }}
+        uiBackground={{ color: BG_DARK }}
+      >
+        <OutlinedLabel value={`HIDE!  ${secs}s`} width={400} height={52} fontSize={42} color={tCol} />
+        <OutlinedLabel value="Find the perfect spot to blend in!" width={400} height={26} fontSize={16} marginTop={6} />
+      </UiEntity>
+      <PropSelectorBar bottom={104} />
+    </UiEntity>
+  )
+}
+
+function PropArrowButton(props: { direction: 'left' | 'right'; onClick: () => void }) {
+  const pressedUntil = props.direction === 'left' ? leftPropArrowPressedUntil : rightPropArrowPressedUntil
+  const pressed = Date.now() < pressedUntil
+  const src =
+    props.direction === 'left'
+      ? (pressed ? LEFT_ARROW_PRESSED_SRC : LEFT_ARROW_SRC)
+      : (pressed ? RIGHT_ARROW_PRESSED_SRC : RIGHT_ARROW_SRC)
+
+  return (
+    <UiEntity
+      uiTransform={{ width: 68, height: 68 }}
+      uiBackground={{ texture: { src }, textureMode: 'stretch' }}
+      onMouseDown={() => {
+        const until = Date.now() + 140
+        if (props.direction === 'left') leftPropArrowPressedUntil = until
+        else rightPropArrowPressedUntil = until
+        props.onClick()
+      }}
+    />
+  )
+}
+
+function PropSelectorBar(props: { bottom: number }) {
+  const prop = PROPS[selectedIndex]
+
+  return (
+    <UiEntity
+      uiTransform={{
+        width: '100%',
+        flexDirection: 'row',
+        alignItems: 'flex-end',
+        justifyContent: 'center',
+        positionType: 'absolute',
+        position: { bottom: props.bottom },
+      }}
+    >
+      <UiEntity
+        uiTransform={{
+          width: 560,
+          height: 86,
+          flexDirection: 'row',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          padding: { left: 18, right: 18 },
+          borderRadius: 16,
+        }}
+      >
+        <PropArrowButton direction="left" onClick={selectPrevProp} />
+        <OutlinedLabel value={prop.name.toUpperCase()} width={320} height={44} fontSize={28} color={WHITE} />
+        <PropArrowButton direction="right" onClick={selectNextProp} />
+      </UiEntity>
+    </UiEntity>
+  )
+}
+
 function HidingPanelHider() {
   const prop  = PROPS[selectedIndex]
   const secs  = uiState.hideSecondsLeft
@@ -522,7 +614,7 @@ function PlayingHUD() {
       </UiEntity>
 
       {/* Prop selector (hiders only) */}
-      {playerRole === 'hider' && !uiState.eliminated && (
+      {false && playerRole === 'hider' && !uiState.eliminated && (
         <UiEntity uiTransform={{ width: '100%', flexDirection: 'row', alignItems: 'flex-end', justifyContent: 'center', positionType: 'absolute', position: { bottom: 64 } }}>
           <UiEntity
             uiTransform={{ width: 440, height: 64, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: { left: 16, right: 16 }, borderRadius: 12 }}
@@ -534,6 +626,8 @@ function PlayingHUD() {
           </UiEntity>
         </UiEntity>
       )}
+
+      {playerRole === 'hider' && !uiState.eliminated && <PropSelectorBar bottom={104} />}
 
       {/* Eliminated overlay */}
       {playerRole === 'hider' && uiState.eliminated && (
@@ -720,7 +814,8 @@ export const uiMenu = () => {
       {DEBUG && <DebugBar phase={phase} role={activeRole} />}
       {phase === 'cinematic' && <CinematicPanel role={activeRole} />}
       {phase === 'lobby'     && <LobbyPanel />}
-      {phase === 'hiding'    && activeRole === 'hider'   && <HidingPanelHider />}
+      {phase === 'lobby'     && DEBUG_PROP_SELECTOR_IN_LOBBY && <PropSelectorBar bottom={104} />}
+      {phase === 'hiding'    && activeRole === 'hider'   && <HidingPanelHiderV2 />}
       {phase === 'hiding'    && activeRole === 'shooter'  && <HidingPanelShooter />}
       {phase === 'playing'   && <PlayingHUD />}
       {phase === 'results'   && <ResultsPanel />}
