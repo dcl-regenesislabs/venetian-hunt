@@ -27,6 +27,8 @@ const RUN_START_SPEED = 0.11
 const RUN_STOP_SPEED = 0.05
 const PITCH_SMOOTH_SPEED = 10
 const MAX_AIM_PITCH_DEG = 55
+const BODY_YAW_ALIGNMENT_OFFSET = 14
+const DEFAULT_MUZZLE_LOCAL_OFFSET = Vector3.create(-0.5, 0.12, -0.01)
 const DEFAULT_WAITING_MODEL_OFFSET = Vector3.create(0.2, 1.4, 0.26)
 const DEFAULT_WAITING_MODEL_ROTATION = Vector3.create(0, 70, 0)
 const DEFAULT_ACTIVE_MODEL_OFFSET = Vector3.create(0.2, 1.4, 0.26)
@@ -35,6 +37,7 @@ let waitingModelOffset = Vector3.clone(DEFAULT_WAITING_MODEL_OFFSET)
 let waitingModelRotation = Vector3.clone(DEFAULT_WAITING_MODEL_ROTATION)
 let activeModelOffset = Vector3.clone(DEFAULT_ACTIVE_MODEL_OFFSET)
 let activeModelRotation = Vector3.clone(DEFAULT_ACTIVE_MODEL_ROTATION)
+let muzzleLocalOffset = Vector3.clone(DEFAULT_MUZZLE_LOCAL_OFFSET)
 
 type PresentationMode = 'waiting' | 'active'
 
@@ -60,6 +63,8 @@ type WeaponEntry = {
   runDownWeight: number
 }
 
+type AimRotation = { x: number; y: number; z: number; w: number }
+
 const entriesByAddress = new Map<string, WeaponEntry>()
 const aimByAddress = new Map<string, { x: number; y: number; z: number; w: number }>()
 let includeLocalShooter = false
@@ -81,8 +86,233 @@ export function updateShooterAim(shooterAddress: string, rx: number, ry: number,
   aimByAddress.set(shooterAddress.toLowerCase(), { x: rx, y: ry, z: rz, w: rw })
 }
 
+function destroyWeaponEntry(entry: WeaponEntry) {
+  engine.removeEntity(entry.bodyEntity)
+  engine.removeEntity(entry.bodyRootEntity)
+  engine.removeEntity(entry.modelEntity)
+  engine.removeEntity(entry.pitchRootEntity)
+  engine.removeEntity(entry.rootEntity)
+}
+
+function createWeaponEntry(
+  avatarEntity: Entity,
+  avatarTransform: { position: { x: number; y: number; z: number }; rotation: { x: number; y: number; z: number; w: number } }
+): WeaponEntry {
+  const bodyRootEntity = engine.addEntity()
+  const bodyEntity = engine.addEntity()
+  const rootEntity = engine.addEntity()
+  const pitchRootEntity = engine.addEntity()
+  const modelEntity = engine.addEntity()
+
+  Transform.create(bodyRootEntity, {
+    position: Vector3.Zero(),
+    rotation: Quaternion.Identity(),
+    scale: Vector3.One(),
+  })
+  Transform.create(bodyEntity, {
+    parent: bodyRootEntity,
+    position: BODY_OFFSET,
+    rotation: BODY_ROTATION,
+    scale: BODY_SCALE,
+  })
+  GltfContainer.create(bodyEntity, {
+    src: SHOOTER_BODY_SRC,
+    invisibleMeshesCollisionMask: ColliderLayer.CL_NONE,
+    visibleMeshesCollisionMask: ColliderLayer.CL_NONE,
+  })
+  Animator.create(bodyEntity, {
+    states: [
+      { clip: BODY_IDLE_CLIP, playing: true, loop: true, weight: 1 },
+      { clip: BODY_RUN_CLIP, playing: true, loop: true, speed: BODY_RUN_SPEED, weight: 0 },
+      { clip: BODY_WAIT_CLIP, playing: true, loop: true, weight: 0 },
+      { clip: BODY_RUN_SHOOT_CLIP, playing: true, loop: true, speed: BODY_RUN_SPEED, weight: 0 },
+      { clip: BODY_AIM_UP_CLIP, playing: true, loop: true, weight: 0 },
+      { clip: BODY_AIM_DOWN_CLIP, playing: true, loop: true, weight: 0 },
+      { clip: BODY_RUN_AIM_UP_CLIP, playing: true, loop: true, speed: BODY_RUN_SPEED, weight: 0 },
+      { clip: BODY_RUN_AIM_DOWN_CLIP, playing: true, loop: true, speed: BODY_RUN_SPEED, weight: 0 },
+    ],
+  })
+
+  Transform.create(rootEntity, {
+    position: Vector3.Zero(),
+    rotation: Quaternion.Identity(),
+    scale: Vector3.One(),
+  })
+  Transform.create(pitchRootEntity, {
+    parent: rootEntity,
+    position: Vector3.Zero(),
+    rotation: Quaternion.Identity(),
+    scale: Vector3.One(),
+  })
+  Transform.create(modelEntity, {
+    parent: pitchRootEntity,
+    position: Vector3.Zero(),
+    rotation: Quaternion.fromEulerDegrees(activeModelRotation.x, activeModelRotation.y, activeModelRotation.z),
+    scale: MODEL_SCALE,
+  })
+  GltfContainer.create(modelEntity, {
+    src: WEAPON_SRC,
+    invisibleMeshesCollisionMask: ColliderLayer.CL_NONE,
+    visibleMeshesCollisionMask: ColliderLayer.CL_NONE,
+  })
+
+  return {
+    avatarEntity,
+    bodyRootEntity,
+    bodyEntity,
+    rootEntity,
+    pitchRootEntity,
+    modelEntity,
+    lastPosition: Vector3.clone(avatarTransform.position),
+    smoothedPosition: Vector3.clone(avatarTransform.position),
+    smoothedBodyRotation: Quaternion.create(
+      avatarTransform.rotation.x,
+      avatarTransform.rotation.y,
+      avatarTransform.rotation.z,
+      avatarTransform.rotation.w
+    ),
+    smoothedAimRotation: Quaternion.create(
+      avatarTransform.rotation.x,
+      avatarTransform.rotation.y,
+      avatarTransform.rotation.z,
+      avatarTransform.rotation.w
+    ),
+    smoothedPitchDeg: 0,
+    running: false,
+    runWeight: 0,
+    idleAimWeight: 1,
+    idleUpWeight: 0,
+    idleDownWeight: 0,
+    runShootWeight: 0,
+    runUpWeight: 0,
+    runDownWeight: 0,
+  }
+}
+
 function clamp01(value: number) {
   return Math.max(0, Math.min(1, value))
+}
+
+function updateWeaponEntry(
+  entry: WeaponEntry,
+  avatarTransform: { position: { x: number; y: number; z: number }; rotation: AimRotation },
+  aimRot: AimRotation,
+  dt: number,
+  bodyYawOffsetDeg = 0
+) {
+  const dx = avatarTransform.position.x - entry.lastPosition.x
+  const dz = avatarTransform.position.z - entry.lastPosition.z
+  const planarDistance = Math.sqrt(dx * dx + dz * dz)
+  const planarSpeed = dt > 0 ? planarDistance / dt : 0
+  entry.lastPosition = Vector3.clone(avatarTransform.position)
+
+  if (entry.running) {
+    entry.running = planarSpeed > RUN_STOP_SPEED
+  } else {
+    entry.running = planarSpeed > RUN_START_SPEED
+  }
+
+  const positionAlpha = Math.min(1, dt * POSITION_SMOOTH_SPEED)
+  const rotationAlpha = Math.min(1, dt * BODY_ROTATION_SMOOTH)
+  const aimAlpha = Math.min(1, dt * AIM_ROTATION_SMOOTH)
+  const pitchAlpha = Math.min(1, dt * PITCH_SMOOTH_SPEED)
+  entry.smoothedPosition = Vector3.lerp(entry.smoothedPosition, avatarTransform.position, positionAlpha)
+  entry.smoothedAimRotation = Quaternion.slerp(entry.smoothedAimRotation, aimRot, aimAlpha)
+  const aimYaw = getAimYawDegrees(aimRot) + BODY_YAW_ALIGNMENT_OFFSET + bodyYawOffsetDeg
+  const bodyYawRotation = Quaternion.fromEulerDegrees(0, aimYaw, 0)
+  entry.smoothedBodyRotation = Quaternion.slerp(entry.smoothedBodyRotation, bodyYawRotation, rotationAlpha)
+  const targetPitchDeg = getAimPitchDegrees(aimRot)
+  entry.smoothedPitchDeg = entry.smoothedPitchDeg + (targetPitchDeg - entry.smoothedPitchDeg) * pitchAlpha
+  const targetRunWeight = entry.running ? 1 : 0
+  const blendAlpha = Math.min(1, dt * ANIMATION_BLEND_SPEED)
+  entry.runWeight = entry.runWeight + (targetRunWeight - entry.runWeight) * blendAlpha
+
+  const bodyRoot = Transform.getMutable(entry.bodyRootEntity)
+  bodyRoot.position = Vector3.add(entry.smoothedPosition, Vector3.rotate(ROOT_OFFSET, entry.smoothedBodyRotation))
+  bodyRoot.rotation = entry.smoothedBodyRotation
+
+  const animator = Animator.getMutable(entry.bodyEntity)
+  const idleState = animator.states.find((state) => state.clip === BODY_IDLE_CLIP)
+  const runState = animator.states.find((state) => state.clip === BODY_RUN_CLIP)
+  const waitState = animator.states.find((state) => state.clip === BODY_WAIT_CLIP)
+  const runShootState = animator.states.find((state) => state.clip === BODY_RUN_SHOOT_CLIP)
+  const aimUpState = animator.states.find((state) => state.clip === BODY_AIM_UP_CLIP)
+  const aimDownState = animator.states.find((state) => state.clip === BODY_AIM_DOWN_CLIP)
+  const runAimUpState = animator.states.find((state) => state.clip === BODY_RUN_AIM_UP_CLIP)
+  const runAimDownState = animator.states.find((state) => state.clip === BODY_RUN_AIM_DOWN_CLIP)
+  if (presentationMode === 'waiting') {
+    entry.runWeight = 0
+    entry.idleAimWeight = 0
+    entry.idleUpWeight = 0
+    entry.idleDownWeight = 0
+    entry.runShootWeight = 0
+    entry.runUpWeight = 0
+    entry.runDownWeight = 0
+    if (idleState) idleState.weight = 0
+    if (runState) runState.weight = 0
+    if (waitState) {
+      waitState.playing = true
+      waitState.weight = 1
+    }
+    if (runShootState) runShootState.weight = 0
+    if (aimUpState) aimUpState.weight = 0
+    if (aimDownState) aimDownState.weight = 0
+    if (runAimUpState) runAimUpState.weight = 0
+    if (runAimDownState) runAimDownState.weight = 0
+  } else {
+    const normalizedPitch = clamp01(Math.abs(entry.smoothedPitchDeg) / MAX_AIM_PITCH_DEG)
+    const upBlend = entry.smoothedPitchDeg > 0 ? normalizedPitch : 0
+    const downBlend = entry.smoothedPitchDeg < 0 ? normalizedPitch : 0
+    const idleFamilyWeight = 1 - entry.runWeight
+    const runFamilyWeight = entry.runWeight
+
+    entry.idleAimWeight = idleFamilyWeight * (1 - normalizedPitch)
+    entry.idleUpWeight = idleFamilyWeight * upBlend
+    entry.idleDownWeight = idleFamilyWeight * downBlend
+    entry.runShootWeight = runFamilyWeight * (1 - normalizedPitch)
+    entry.runUpWeight = runFamilyWeight * upBlend
+    entry.runDownWeight = runFamilyWeight * downBlend
+
+    if (idleState) idleState.weight = 0
+    if (runState) runState.weight = 0
+    if (waitState) {
+      waitState.playing = true
+      waitState.weight = entry.idleAimWeight
+    }
+    if (runShootState) {
+      runShootState.playing = true
+      runShootState.weight = entry.runShootWeight
+    }
+    if (aimUpState) {
+      aimUpState.playing = true
+      aimUpState.weight = entry.idleUpWeight
+    }
+    if (aimDownState) {
+      aimDownState.playing = true
+      aimDownState.weight = entry.idleDownWeight
+    }
+    if (runAimUpState) {
+      runAimUpState.playing = true
+      runAimUpState.weight = entry.runUpWeight
+    }
+    if (runAimDownState) {
+      runAimDownState.playing = true
+      runAimDownState.weight = entry.runDownWeight
+    }
+  }
+
+  const root = Transform.getMutable(entry.rootEntity)
+  const pitchRoot = Transform.getMutable(entry.pitchRootEntity)
+  const model = Transform.getMutable(entry.modelEntity)
+  const weaponRootOffset = presentationMode === 'waiting' ? waitingModelOffset : activeModelOffset
+  root.position = Vector3.add(entry.smoothedPosition, Vector3.rotate(weaponRootOffset, entry.smoothedBodyRotation))
+  root.rotation = entry.smoothedBodyRotation
+  pitchRoot.rotation = Quaternion.fromEulerDegrees(-entry.smoothedPitchDeg, 0, 0)
+  model.position = Vector3.Zero()
+  model.rotation =
+    presentationMode === 'waiting'
+      ? Quaternion.fromEulerDegrees(waitingModelRotation.x, waitingModelRotation.y, waitingModelRotation.z)
+      : Quaternion.fromEulerDegrees(activeModelRotation.x, activeModelRotation.y, activeModelRotation.z)
 }
 
 function getForwardFromQuaternion(rotation: { x: number; y: number; z: number; w: number }) {
@@ -116,11 +346,7 @@ export function updateShooterWeapons(
 
   for (const [addr, entry] of entriesByAddress) {
     if (!normalized.includes(addr) || (!includeLocalShooter && addr === localAddress)) {
-      engine.removeEntity(entry.bodyEntity)
-      engine.removeEntity(entry.bodyRootEntity)
-      engine.removeEntity(entry.modelEntity)
-      engine.removeEntity(entry.pitchRootEntity)
-      engine.removeEntity(entry.rootEntity)
+      destroyWeaponEntry(entry)
       entriesByAddress.delete(addr)
     }
   }
@@ -140,106 +366,22 @@ export function updateShooterWeapons(
       continue
     }
 
-    const bodyRootEntity = engine.addEntity()
-    const bodyEntity = engine.addEntity()
-    const rootEntity = engine.addEntity()
-    const pitchRootEntity = engine.addEntity()
-    const modelEntity = engine.addEntity()
-
-    Transform.create(bodyRootEntity, {
-      position: Vector3.Zero(),
-      rotation: Quaternion.Identity(),
-      scale: Vector3.One(),
-    })
-    Transform.create(bodyEntity, {
-      parent: bodyRootEntity,
-      position: BODY_OFFSET,
-      rotation: BODY_ROTATION,
-      scale: BODY_SCALE,
-    })
-    GltfContainer.create(bodyEntity, {
-      src: SHOOTER_BODY_SRC,
-      invisibleMeshesCollisionMask: ColliderLayer.CL_NONE,
-      visibleMeshesCollisionMask: ColliderLayer.CL_NONE,
-    })
-    Animator.create(bodyEntity, {
-      states: [
-        { clip: BODY_IDLE_CLIP, playing: true, loop: true, weight: 1 },
-        { clip: BODY_RUN_CLIP, playing: true, loop: true, speed: BODY_RUN_SPEED, weight: 0 },
-        { clip: BODY_WAIT_CLIP, playing: true, loop: true, weight: 0 },
-        { clip: BODY_RUN_SHOOT_CLIP, playing: true, loop: true, speed: BODY_RUN_SPEED, weight: 0 },
-        { clip: BODY_AIM_UP_CLIP, playing: true, loop: true, weight: 0 },
-        { clip: BODY_AIM_DOWN_CLIP, playing: true, loop: true, weight: 0 },
-        { clip: BODY_RUN_AIM_UP_CLIP, playing: true, loop: true, speed: BODY_RUN_SPEED, weight: 0 },
-        { clip: BODY_RUN_AIM_DOWN_CLIP, playing: true, loop: true, speed: BODY_RUN_SPEED, weight: 0 },
-      ],
-    })
-
-    Transform.create(rootEntity, {
-      position: Vector3.Zero(),
-      rotation: Quaternion.Identity(),
-      scale: Vector3.One(),
-    })
-    Transform.create(pitchRootEntity, {
-      parent: rootEntity,
-      position: Vector3.Zero(),
-      rotation: Quaternion.Identity(),
-      scale: Vector3.One(),
-    })
-    Transform.create(modelEntity, {
-      parent: pitchRootEntity,
-      position: Vector3.Zero(),
-      rotation: Quaternion.fromEulerDegrees(activeModelRotation.x, activeModelRotation.y, activeModelRotation.z),
-      scale: MODEL_SCALE,
-    })
-    GltfContainer.create(modelEntity, {
-      src: WEAPON_SRC,
-      invisibleMeshesCollisionMask: ColliderLayer.CL_NONE,
-      visibleMeshesCollisionMask: ColliderLayer.CL_NONE,
-    })
-
-    entriesByAddress.set(addr, {
-      avatarEntity,
-      bodyRootEntity,
-      bodyEntity,
-      rootEntity,
-      pitchRootEntity,
-      modelEntity,
-      lastPosition: Vector3.clone(avatarTransform.position),
-      smoothedPosition: Vector3.clone(avatarTransform.position),
-      smoothedBodyRotation: Quaternion.create(
-        avatarTransform.rotation.x,
-        avatarTransform.rotation.y,
-        avatarTransform.rotation.z,
-        avatarTransform.rotation.w
-      ),
-      smoothedAimRotation: Quaternion.create(
-        avatarTransform.rotation.x,
-        avatarTransform.rotation.y,
-        avatarTransform.rotation.z,
-        avatarTransform.rotation.w
-      ),
-      smoothedPitchDeg: 0,
-      running: false,
-      runWeight: 0,
-      idleAimWeight: 1,
-      idleUpWeight: 0,
-      idleDownWeight: 0,
-      runShootWeight: 0,
-      runUpWeight: 0,
-      runDownWeight: 0,
-    })
+    entriesByAddress.set(addr, createWeaponEntry(avatarEntity, avatarTransform))
   }
 }
 
 export function getShooterMuzzleWorld(shooterAddress: string): { x: number; y: number; z: number } | null {
   const entry = entriesByAddress.get(shooterAddress.toLowerCase())
+  return entry ? getMuzzleWorldFromEntry(entry) : null
+}
+
+function getMuzzleWorldFromEntry(entry: WeaponEntry): { x: number; y: number; z: number } | null {
   if (!entry) return null
   const root = Transform.getOrNull(entry.rootEntity)
   const pitchRoot = Transform.getOrNull(entry.pitchRootEntity)
   const model = Transform.getOrNull(entry.modelEntity)
   if (!root || !pitchRoot || !model) return null
-  let muzzleInRoot = Vector3.rotate(Vector3.create(0.2, 1.0, 0.7), model.rotation)
+  let muzzleInRoot = Vector3.rotate(muzzleLocalOffset, model.rotation)
   muzzleInRoot = Vector3.add(model.position, muzzleInRoot)
   muzzleInRoot = Vector3.rotate(muzzleInRoot, pitchRoot.rotation)
   muzzleInRoot = Vector3.add(pitchRoot.position, muzzleInRoot)
@@ -253,11 +395,7 @@ export function getShooterMuzzleWorld(shooterAddress: string): { x: number; y: n
 
 export function clearShooterWeapons() {
   for (const entry of entriesByAddress.values()) {
-    engine.removeEntity(entry.bodyEntity)
-    engine.removeEntity(entry.bodyRootEntity)
-    engine.removeEntity(entry.modelEntity)
-    engine.removeEntity(entry.pitchRootEntity)
-    engine.removeEntity(entry.rootEntity)
+    destroyWeaponEntry(entry)
   }
   entriesByAddress.clear()
 }
@@ -265,11 +403,7 @@ export function clearShooterWeapons() {
 export function setShooterWeaponsVisible(visible: boolean) {
   if (visible) return
   for (const entry of entriesByAddress.values()) {
-    engine.removeEntity(entry.bodyEntity)
-    engine.removeEntity(entry.bodyRootEntity)
-    engine.removeEntity(entry.modelEntity)
-    engine.removeEntity(entry.pitchRootEntity)
-    engine.removeEntity(entry.rootEntity)
+    destroyWeaponEntry(entry)
   }
   entriesByAddress.clear()
 }
@@ -350,119 +484,6 @@ engine.addSystem((dt) => {
         aimRot = cameraTransform.rotation
       }
     }
-    const dx = avatarTransform.position.x - entry.lastPosition.x
-    const dz = avatarTransform.position.z - entry.lastPosition.z
-    const planarDistance = Math.sqrt(dx * dx + dz * dz)
-    const planarSpeed = dt > 0 ? planarDistance / dt : 0
-    entry.lastPosition = Vector3.clone(avatarTransform.position)
-
-    if (entry.running) {
-      entry.running = planarSpeed > RUN_STOP_SPEED
-    } else {
-      entry.running = planarSpeed > RUN_START_SPEED
-    }
-
-    const positionAlpha = Math.min(1, dt * POSITION_SMOOTH_SPEED)
-    const rotationAlpha = Math.min(1, dt * BODY_ROTATION_SMOOTH)
-    const aimAlpha = Math.min(1, dt * AIM_ROTATION_SMOOTH)
-    const pitchAlpha = Math.min(1, dt * PITCH_SMOOTH_SPEED)
-    entry.smoothedPosition = Vector3.lerp(entry.smoothedPosition, avatarTransform.position, positionAlpha)
-    entry.smoothedAimRotation = Quaternion.slerp(entry.smoothedAimRotation, aimRot, aimAlpha)
-    const aimYaw = getAimYawDegrees(aimRot)
-    const bodyYawRotation = Quaternion.fromEulerDegrees(0, aimYaw, 0)
-    entry.smoothedBodyRotation = Quaternion.slerp(entry.smoothedBodyRotation, bodyYawRotation, rotationAlpha)
-    const targetPitchDeg = getAimPitchDegrees(aimRot)
-    entry.smoothedPitchDeg = entry.smoothedPitchDeg + (targetPitchDeg - entry.smoothedPitchDeg) * pitchAlpha
-    const targetRunWeight = entry.running ? 1 : 0
-    const blendAlpha = Math.min(1, dt * ANIMATION_BLEND_SPEED)
-    entry.runWeight = entry.runWeight + (targetRunWeight - entry.runWeight) * blendAlpha
-
-    const bodyRoot = Transform.getMutable(entry.bodyRootEntity)
-    bodyRoot.position = Vector3.add(entry.smoothedPosition, Vector3.rotate(ROOT_OFFSET, entry.smoothedBodyRotation))
-    bodyRoot.rotation = entry.smoothedBodyRotation
-
-    const animator = Animator.getMutable(entry.bodyEntity)
-    const idleState = animator.states.find((state) => state.clip === BODY_IDLE_CLIP)
-    const runState = animator.states.find((state) => state.clip === BODY_RUN_CLIP)
-    const waitState = animator.states.find((state) => state.clip === BODY_WAIT_CLIP)
-    const runShootState = animator.states.find((state) => state.clip === BODY_RUN_SHOOT_CLIP)
-    const aimUpState = animator.states.find((state) => state.clip === BODY_AIM_UP_CLIP)
-    const aimDownState = animator.states.find((state) => state.clip === BODY_AIM_DOWN_CLIP)
-    const runAimUpState = animator.states.find((state) => state.clip === BODY_RUN_AIM_UP_CLIP)
-    const runAimDownState = animator.states.find((state) => state.clip === BODY_RUN_AIM_DOWN_CLIP)
-    if (presentationMode === 'waiting') {
-      entry.runWeight = 0
-      entry.idleAimWeight = 0
-      entry.idleUpWeight = 0
-      entry.idleDownWeight = 0
-      entry.runShootWeight = 0
-      entry.runUpWeight = 0
-      entry.runDownWeight = 0
-      if (idleState) idleState.weight = 0
-      if (runState) runState.weight = 0
-      if (waitState) {
-        waitState.playing = true
-        waitState.weight = 1
-      }
-      if (runShootState) runShootState.weight = 0
-      if (aimUpState) aimUpState.weight = 0
-      if (aimDownState) aimDownState.weight = 0
-      if (runAimUpState) runAimUpState.weight = 0
-      if (runAimDownState) runAimDownState.weight = 0
-    } else {
-      const normalizedPitch = clamp01(Math.abs(entry.smoothedPitchDeg) / MAX_AIM_PITCH_DEG)
-      const upBlend = entry.smoothedPitchDeg > 0 ? normalizedPitch : 0
-      const downBlend = entry.smoothedPitchDeg < 0 ? normalizedPitch : 0
-      const idleFamilyWeight = 1 - entry.runWeight
-      const runFamilyWeight = entry.runWeight
-
-      entry.idleAimWeight = idleFamilyWeight * (1 - normalizedPitch)
-      entry.idleUpWeight = idleFamilyWeight * upBlend
-      entry.idleDownWeight = idleFamilyWeight * downBlend
-      entry.runShootWeight = runFamilyWeight * (1 - normalizedPitch)
-      entry.runUpWeight = runFamilyWeight * upBlend
-      entry.runDownWeight = runFamilyWeight * downBlend
-
-      if (idleState) idleState.weight = 0
-      if (runState) runState.weight = 0
-      if (waitState) {
-        waitState.playing = true
-        waitState.weight = entry.idleAimWeight
-      }
-      if (runShootState) {
-        runShootState.playing = true
-        runShootState.weight = entry.runShootWeight
-      }
-      if (aimUpState) {
-        aimUpState.playing = true
-        aimUpState.weight = entry.idleUpWeight
-      }
-      if (aimDownState) {
-        aimDownState.playing = true
-        aimDownState.weight = entry.idleDownWeight
-      }
-      if (runAimUpState) {
-        runAimUpState.playing = true
-        runAimUpState.weight = entry.runUpWeight
-      }
-      if (runAimDownState) {
-        runAimDownState.playing = true
-        runAimDownState.weight = entry.runDownWeight
-      }
-    }
-
-    const root = Transform.getMutable(entry.rootEntity)
-    const pitchRoot = Transform.getMutable(entry.pitchRootEntity)
-    const model = Transform.getMutable(entry.modelEntity)
-    const weaponRootOffset = presentationMode === 'waiting' ? waitingModelOffset : activeModelOffset
-    root.position = Vector3.add(entry.smoothedPosition, Vector3.rotate(weaponRootOffset, entry.smoothedBodyRotation))
-    root.rotation = entry.smoothedBodyRotation
-    pitchRoot.rotation = Quaternion.fromEulerDegrees(-entry.smoothedPitchDeg, 0, 0)
-    model.position = Vector3.Zero()
-    model.rotation =
-      presentationMode === 'waiting'
-        ? Quaternion.fromEulerDegrees(waitingModelRotation.x, waitingModelRotation.y, waitingModelRotation.z)
-        : Quaternion.fromEulerDegrees(activeModelRotation.x, activeModelRotation.y, activeModelRotation.z)
+    updateWeaponEntry(entry, avatarTransform, aimRot, dt)
   }
-
 })

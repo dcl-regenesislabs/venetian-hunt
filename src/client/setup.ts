@@ -5,7 +5,13 @@ import { movePlayerTo } from '~system/RestrictedActions'
 import { room } from '../shared/messages'
 import { activateAvatarHiding, deactivateAvatarHiding } from '../avatarHiding'
 import { setLocalPlayerAddress, syncRemoteDisguises, onPlayerDisguised, onPlayerUndisguised, blinkPlayerProp, clearAllProps } from './propSystem'
-import { updateShooterWeapons, clearShooterWeapons, setShooterWeaponsVisible, updateShooterAim, getShooterMuzzleWorld } from './shooterWeapons'
+import {
+  updateShooterWeapons,
+  clearShooterWeapons,
+  setShooterWeaponsVisible,
+  updateShooterAim,
+  getShooterMuzzleWorld,
+} from './shooterWeapons'
 import { spawnRemoteBullet, spawnRemoteVfx } from './remoteBullets'
 import { setPlayerRole, blinkLocalProp, resetForLobby, clearLocalProp, reattachProp, showRoleArrow, hideRoleArrow, enableShooterLoadout, disableShooterLoadout } from '../ui'
 import { pauseShooter, resumeShooter } from './shooterSystem'
@@ -129,6 +135,7 @@ export function initClient() {
     syncRolesFromState(myAddress)
 
     if (phase !== 'hiding' && phase !== 'playing') {
+      disableShooterLoadout()
       updateShooterWeapons(currentShooterAddresses, myAddress ?? '', { includeLocal: false, mode: 'active' })
       setShooterWeaponsVisible(false)
       deactivateAvatarHiding()
@@ -295,9 +302,9 @@ export function initClient() {
     if (data.shooterAddress !== myAddress) {
       const rot = { x: data.rx, y: data.ry, z: data.rz, w: data.rw }
       const sentPos = { x: data.px, y: data.py, z: data.pz }
-      const vfxPos = getShooterMuzzleWorld(data.shooterAddress) ?? sentPos
-      spawnRemoteBullet(sentPos, rot)
-      spawnRemoteVfx(vfxPos, rot)
+      const muzzlePos = getShooterMuzzleWorld(data.shooterAddress) ?? sentPos
+      spawnRemoteBullet(muzzlePos, rot)
+      spawnRemoteVfx(muzzlePos, rot)
       playGunshotAt(data.px, data.py, data.pz)
     }
   })

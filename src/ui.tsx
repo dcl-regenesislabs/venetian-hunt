@@ -463,6 +463,7 @@ function HidingPanelShooter() {
         <OutlinedLabel value="Hiders are hiding...  " width={260} height={36} fontSize={18} color={{ r: 0.65, g: 0.65, b: 0.65, a: 1 }} />
         <OutlinedLabel value={`${secs}s`} width={80} height={36} fontSize={24} color={tCol} />
       </UiEntity>
+
     </UiEntity>
   )
 }
