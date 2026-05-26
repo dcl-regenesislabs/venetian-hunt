@@ -292,20 +292,22 @@ function OutlinedLabel(props: { value: string; width: number; height: number; fo
 }
 
 const BLOOM_MS = 150
-
+const MOBILE_CROSSHAIR_X_OFFSET = -0.26
 function Crosshair() {
   const blooming    = Date.now() - getLastShotMs() < BLOOM_MS
-  const gap         = blooming ? 14 : 6
-  const lineLength  = blooming ? 14 : 10
-  const thickness   = 2
-  const dot         = 2
+  const gap         = blooming ? 16 : 7
+  const lineLength  = blooming ? 18 : 12
+  const thickness   = 4
+  const dot         = 4
+  const mobileOffset = isMobile() ? MOBILE_CROSSHAIR_X_OFFSET : 0
+  const crosshairColor = WHITE
   return (
-    <UiEntity uiTransform={{ width: 100, height: 100, positionType: 'absolute', position: { top: '50%', left: '50%' }, margin: { top: -50, left: -50 } }}>
-      <UiEntity uiTransform={{ width: thickness, height: lineLength, positionType: 'absolute', position: { top: '50%', left: '50%' }, margin: { top: -(gap + lineLength), left: -(thickness / 2) } }} uiBackground={{ color: WHITE }} />
-      <UiEntity uiTransform={{ width: thickness, height: lineLength, positionType: 'absolute', position: { top: '50%', left: '50%' }, margin: { top: gap, left: -(thickness / 2) } }} uiBackground={{ color: WHITE }} />
-      <UiEntity uiTransform={{ width: lineLength, height: thickness, positionType: 'absolute', position: { top: '50%', left: '50%' }, margin: { top: -(thickness / 2), left: -(gap + lineLength) } }} uiBackground={{ color: WHITE }} />
-      <UiEntity uiTransform={{ width: lineLength, height: thickness, positionType: 'absolute', position: { top: '50%', left: '50%' }, margin: { top: -(thickness / 2), left: gap } }} uiBackground={{ color: WHITE }} />
-      <UiEntity uiTransform={{ width: dot, height: dot, positionType: 'absolute', position: { top: '50%', left: '50%' }, margin: { top: -(dot / 2), left: -(dot / 2) } }} uiBackground={{ color: WHITE }} />
+    <UiEntity uiTransform={{ width: 100, height: 100, positionType: 'absolute', position: { top: '50%', left: '50%' }, margin: { top: -50.1, left: -50 + mobileOffset } }}>
+      <UiEntity uiTransform={{ width: thickness, height: lineLength, positionType: 'absolute', position: { top: '50%', left: '50%' }, margin: { top: -(gap + lineLength), left: -(thickness / 2) } }} uiBackground={{ color: crosshairColor }} />
+      <UiEntity uiTransform={{ width: thickness, height: lineLength, positionType: 'absolute', position: { top: '50%', left: '50%' }, margin: { top: gap, left: -(thickness / 2) } }} uiBackground={{ color: crosshairColor }} />
+      <UiEntity uiTransform={{ width: lineLength, height: thickness, positionType: 'absolute', position: { top: '50%', left: '50%' }, margin: { top: -(thickness / 2), left: -(gap + lineLength) } }} uiBackground={{ color: crosshairColor }} />
+      <UiEntity uiTransform={{ width: lineLength, height: thickness, positionType: 'absolute', position: { top: '50%', left: '50%' }, margin: { top: -(thickness / 2), left: gap } }} uiBackground={{ color: crosshairColor }} />
+      <UiEntity uiTransform={{ width: dot, height: dot, positionType: 'absolute', position: { top: '50%', left: '50%' }, margin: { top: -(dot / 2), left: -(dot / 2) } }} uiBackground={{ color: crosshairColor }} />
     </UiEntity>
   )
 }
