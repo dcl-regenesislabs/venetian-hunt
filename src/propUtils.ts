@@ -2,6 +2,7 @@ import { engine, Entity, GltfContainer, MeshRenderer, MeshCollider, ColliderLaye
 
 export const PRIMITIVE_CUBE     = 'primitive://cube'
 export const PRIMITIVE_CYLINDER = 'primitive://cylinder'
+const MOBILE_DISGUISE_LIFT = 0.08
 
 export function isPrimitive(src: string) {
   return src === PRIMITIVE_CUBE || src === PRIMITIVE_CYLINDER
@@ -32,4 +33,16 @@ export function primitiveDisguiseTransform(src: string) {
   if (src === PRIMITIVE_CUBE)     return { scale: { x: 1, y: 1, z: 1 }, y: 0.46 }
   if (src === PRIMITIVE_CYLINDER) return { scale: { x: 1, y: 1, z: 1 }, y: 0.46 }
   return null
+}
+
+export function getDisguiseLocalYOffset(src: string, mobile: boolean) {
+  const prim = primitiveDisguiseTransform(src)
+  const base = prim ? prim.y : -0.1
+  return base + (mobile ? MOBILE_DISGUISE_LIFT : 0)
+}
+
+export function getDisguiseRemoteYOffset(src: string, mobile: boolean) {
+  const prim = primitiveDisguiseTransform(src)
+  const base = prim ? prim.y : 0
+  return base + (mobile ? MOBILE_DISGUISE_LIFT : 0)
 }
