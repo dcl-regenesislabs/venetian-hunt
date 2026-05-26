@@ -1,4 +1,5 @@
 import { engine, Entity, PlayerIdentityData } from '@dcl/sdk/ecs'
+import { onEnterScene } from '@dcl/sdk/players'
 import { syncEntity } from '@dcl/sdk/network'
 import { room } from '../shared/messages'
 import { GameStateComponent, RolesComponent, DisguisedPlayersComponent, GlobalLeaderboardComponent } from '../shared/schemas'
@@ -225,9 +226,7 @@ export function initServer() {
   engine.addSystem(() => {
     const current = new Set<string>()
     for (const [, identity] of engine.getEntitiesWith(PlayerIdentityData)) {
-      const addr = identity.address.toLowerCase()
-      current.add(addr)
-      if (identity.name) displayNames.set(addr, identity.name)
+      current.add(identity.address.toLowerCase())
     }
 
     // Joins
@@ -371,6 +370,10 @@ export function initServer() {
     if (readyPlayers.size < MIN_PLAYERS || readyPlayers.size > MAX_PLAYERS) return
     console.log(`[Server] Game started by ${context.from}`)
     startCinematicPhase()
+  })
+
+  onEnterScene((player) => {
+    if (player.name) displayNames.set(player.userId.toLowerCase(), player.name)
   })
 
   void leaderboardStore.load().then(() => {
