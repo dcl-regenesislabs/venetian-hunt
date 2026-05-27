@@ -12,6 +12,7 @@ import {
   updateShooterAim,
   getShooterMuzzleWorld,
 } from './shooterWeapons'
+import { setLeaderboardSnapshot } from './leaderboardWorldPanels'
 import { spawnRemoteBullet, spawnRemoteVfx } from './remoteBullets'
 import { setPlayerRole, blinkLocalProp, resetForLobby, clearLocalProp, reattachProp, showRoleArrow, hideRoleArrow, enableShooterLoadout, disableShooterLoadout } from '../ui'
 import { pauseShooter, resumeShooter } from './shooterSystem'
@@ -256,6 +257,13 @@ export function initClient() {
     uiState.lobbyPlayerCount = data.connectedCount
     uiState.lobbyReadyCount = data.readyCount
     uiState.lobbyCanStart = data.canStart
+  })
+
+  room.onMessage('leaderboardSnapshot', (data) => {
+    setLeaderboardSnapshot({
+      hunters: data.hunters.map((entry) => ({ address: entry.address, displayName: entry.displayName, value: entry.value })),
+      props: data.props.map((entry) => ({ address: entry.address, displayName: entry.displayName, value: entry.value }))
+    })
   })
 
   room.onMessage('playerDisguised', (data) => {

@@ -73,17 +73,19 @@ export function initServer() {
   }
 
   function syncLeaderboardComponent() {
-    const comp = GlobalLeaderboardComponent.getMutable(leaderboardEntity)
-    comp.hunters = leaderboardStore.getHuntersTop().map((entry) => ({
+    const hunters = leaderboardStore.getHuntersTop().map((entry) => ({
       address: entry.address,
       displayName: entry.displayName,
       value: entry.value
     }))
-    comp.props = leaderboardStore.getPropsTop().map((entry) => ({
+    const props = leaderboardStore.getPropsTop().map((entry) => ({
       address: entry.address,
       displayName: entry.displayName,
       value: entry.value
     }))
+
+    GlobalLeaderboardComponent.createOrReplace(leaderboardEntity, { hunters, props })
+    room.send('leaderboardSnapshot', { hunters, props })
   }
 
   function commitWinningTeamToLeaderboard(winner: 'shooters' | 'hiders') {

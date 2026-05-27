@@ -26,6 +26,11 @@ type Panel = {
   rows: EntryRow[]
 }
 
+type LeaderboardSnapshot = {
+  hunters: LeaderboardEntryData[]
+  props: LeaderboardEntryData[]
+}
+
 const STICK_POSITION = Vector3.create(16.75, 2.5, 6.5)
 const STICK_ROTATION = Quaternion.fromEulerDegrees(0, 270, 0)
 const ROOT_SCALE = Vector3.One()
@@ -37,6 +42,7 @@ const HEADER_TEXT = Color4.fromHexString('#f2d35cff')
 const ROW_TEXT = Color4.White()
 const VALUE_TEXT = Color4.fromHexString('#f5f5f5ff')
 const ROWS = 10
+let latestSnapshot: LeaderboardSnapshot = { hunters: [], props: [] }
 
 function truncateName(displayName: string, address: string, maxLen = 12) {
   const base = displayName && displayName.length > 0 ? displayName : address.slice(0, 8)
@@ -146,26 +152,33 @@ export function initLeaderboardWorldPanels() {
     if (accumulator < 0.5) return
     accumulator = 0
 
-    let data: { hunters: LeaderboardEntryData[]; props: LeaderboardEntryData[] } | null = null
-    for (const [, comp] of engine.getEntitiesWith(GlobalLeaderboardComponent)) {
-      data = {
-        hunters: comp.hunters.map((entry) => ({ address: entry.address, displayName: entry.displayName, value: entry.value })),
-        props: comp.props.map((entry) => ({ address: entry.address, displayName: entry.displayName, value: entry.value }))
+    if (latestSnapshot.hunters.length === 0 && latestSnapshot.props.length === 0) {
+      for (const [, comp] of engine.getEntitiesWith(GlobalLeaderboardComponent)) {
+        latestSnapshot = {
+          hunters: comp.hunters.map((entry) => ({ address: entry.address, displayName: entry.displayName, value: entry.value })),
+          props: comp.props.map((entry) => ({ address: entry.address, displayName: entry.displayName, value: entry.value }))
+        }
+        break
       }
-      break
     }
-    if (!data) return
 
-    const huntersKey = data.hunters.map((entry: LeaderboardEntryData) => `${entry.address}:${entry.value}`).join('|')
+    const huntersKey = latestSnapshot.hunters.map((entry: LeaderboardEntryData) => `${entry.address}:${entry.value}`).join('|')
     if (huntersKey !== lastHuntersKey) {
       lastHuntersKey = huntersKey
-      updatePanel(huntersPanel, data.hunters)
+      updatePanel(huntersPanel, latestSnapshot.hunters)
     }
 
-    const propsKey = data.props.map((entry: LeaderboardEntryData) => `${entry.address}:${entry.value}`).join('|')
+    const propsKey = latestSnapshot.props.map((entry: LeaderboardEntryData) => `${entry.address}:${entry.value}`).join('|')
     if (propsKey !== lastPropsKey) {
       lastPropsKey = propsKey
-      updatePanel(propsPanel, data.props)
+      updatePanel(propsPanel, latestSnapshot.props)
     }
   }, undefined, 'leaderboard-world-panels-system')
+}
+
+export function setLeaderboardSnapshot(snapshot: LeaderboardSnapshot) {
+  latestSnapshot = {
+    hunters: snapshot.hunters.map((entry) => ({ ...entry })),
+    props: snapshot.props.map((entry) => ({ ...entry }))
+  }
 }
