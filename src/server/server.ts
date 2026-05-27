@@ -1,8 +1,10 @@
 import { engine, Entity, PlayerIdentityData } from '@dcl/sdk/ecs'
+import { onEnterScene } from '@dcl/sdk/players'
 import { syncEntity } from '@dcl/sdk/network'
 import { room } from '../shared/messages'
-import { GameStateComponent, RolesComponent, DisguisedPlayersComponent } from '../shared/schemas'
+import { GameStateComponent, RolesComponent, DisguisedPlayersComponent, GlobalLeaderboardComponent } from '../shared/schemas'
 import { PROP_SPAWN_POINTS } from '../propSpawnPoints'
+import { createLeaderboardStore } from './storage/leaderboard'
 
 const VALID_PROP_SRCS      = new Set(Object.keys(PROP_SPAWN_POINTS))
 const MIN_PLAYERS          = 2
@@ -11,6 +13,7 @@ const CINEMATIC_DURATION_S = 15
 const HIDING_DURATION_S    = 30
 const PLAYING_DURATION_S   = 180  // 3 minutes
 const RESULTS_DURATION_S   = 8
+const LEADERBOARD_ENTITY_ID = 4
 
 // floor(n/2) shooters — odd remainder always goes to hiders (shooters always at disadvantage)
 function shuffle<T>(items: T[]): T[] {
@@ -35,6 +38,7 @@ function assignRoles(addresses: string[]): { shooters: string[]; hiders: string[
 
 export function initServer() {
   console.log('[Server] Prop Hunt server starting...')
+  const leaderboardStore = createLeaderboardStore()
 
   // --- Synced entities (IDs 1-3 reserved) ---
   const gameEntity: Entity = 1 as Entity
@@ -49,11 +53,57 @@ export function initServer() {
   DisguisedPlayersComponent.create(disguisedEntity, { disguises: [] })
   syncEntity(disguisedEntity, [DisguisedPlayersComponent.componentId], 3)
 
+  const leaderboardEntity: Entity = LEADERBOARD_ENTITY_ID as Entity
+  GlobalLeaderboardComponent.create(leaderboardEntity, { hunters: [], props: [] })
+  syncEntity(leaderboardEntity, [GlobalLeaderboardComponent.componentId], LEADERBOARD_ENTITY_ID)
+
   // --- Runtime state ---
   const connectedPlayers = new Set<string>()
   const readyPlayers     = new Set<string>()
   let activeHiders       = new Set<string>()
   const hiderHealth      = new Map<string, number>()
+  const displayNames     = new Map<string, string>()
+
+  function getLeaderboardDisplayName(address: string) {
+    const name = displayNames.get(address) ?? ''
+    const lastFour = address.slice(-4)
+    if (!name) return address.slice(0, 8)
+    const truncated = name.length > 10 ? `${name.slice(0, 7)}...` : name
+    return `${truncated}#${lastFour}`
+  }
+
+  function syncLeaderboardComponent() {
+    const hunters = leaderboardStore.getHuntersTop().map((entry) => ({
+      address: entry.address,
+      displayName: entry.displayName,
+      value: entry.value
+    }))
+    const props = leaderboardStore.getPropsTop().map((entry) => ({
+      address: entry.address,
+      displayName: entry.displayName,
+      value: entry.value
+    }))
+
+    GlobalLeaderboardComponent.createOrReplace(leaderboardEntity, { hunters, props })
+    room.send('leaderboardSnapshot', { hunters, props })
+  }
+
+  function commitWinningTeamToLeaderboard(winner: 'shooters' | 'hiders') {
+    const roles = RolesComponent.get(rolesEntity)
+    const winners = winner === 'shooters' ? roles.shooters : roles.hiders
+    const type = winner === 'shooters' ? 'hunters' : 'props'
+    let changed = false
+
+    for (const address of winners) {
+      const nextValue = leaderboardStore.getCurrentValue(type, address) + 1
+      changed = leaderboardStore.update(type, address, getLeaderboardDisplayName(address), nextValue) || changed
+    }
+
+    if (changed) {
+      syncLeaderboardComponent()
+      void leaderboardStore.persist()
+    }
+  }
 
   function getLobbyPlayerAddresses() {
     return [...readyPlayers]
@@ -150,6 +200,7 @@ export function initServer() {
 
   function endGame(winner: 'shooters' | 'hiders') {
     cancelTimer()
+    commitWinningTeamToLeaderboard(winner)
     GameStateComponent.createOrReplace(gameEntity, { phase: 'results' })
     room.send('gamePhaseChanged', { phase: 'results' })
     room.send('gameResults', { winner })
@@ -186,6 +237,7 @@ export function initServer() {
         connectedPlayers.add(addr)
         console.log(`[Server] Player joined: ${addr} (${connectedPlayers.size} total)`)
         broadcastLobbyState()
+        syncLeaderboardComponent()
       }
     }
 
@@ -320,5 +372,13 @@ export function initServer() {
     if (readyPlayers.size < MIN_PLAYERS || readyPlayers.size > MAX_PLAYERS) return
     console.log(`[Server] Game started by ${context.from}`)
     startCinematicPhase()
+  })
+
+  onEnterScene((player) => {
+    if (player.name) displayNames.set(player.userId.toLowerCase(), player.name)
+  })
+
+  void leaderboardStore.load().then(() => {
+    syncLeaderboardComponent()
   })
 }

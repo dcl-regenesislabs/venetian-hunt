@@ -17,6 +17,21 @@ export const DisguisedPlayersComponent = engine.defineComponent('prophunt:Disgui
   })),
 })
 
+const LeaderboardEntrySchema = Schemas.Map({
+  address: Schemas.String,
+  displayName: Schemas.String,
+  value: Schemas.Number
+})
+
+export const GlobalLeaderboardComponent = engine.defineComponent('prophunt:GlobalLeaderboard', {
+  hunters: Schemas.Array(LeaderboardEntrySchema),
+  props: Schemas.Array(LeaderboardEntrySchema)
+}, {
+  hunters: [],
+  props: []
+})
+
 GameStateComponent.validateBeforeChange(      (v) => v.senderAddress === AUTH_SERVER_PEER_ID)
 RolesComponent.validateBeforeChange(          (v) => v.senderAddress === AUTH_SERVER_PEER_ID)
 DisguisedPlayersComponent.validateBeforeChange((v) => v.senderAddress === AUTH_SERVER_PEER_ID)
+GlobalLeaderboardComponent.validateBeforeChange((v) => v.senderAddress === AUTH_SERVER_PEER_ID)
