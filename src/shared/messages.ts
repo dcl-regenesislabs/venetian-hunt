@@ -29,4 +29,16 @@ export const room = registerMessages({
   hideCountdown:    Schemas.Map({ seconds: Schemas.Number }),
   playingTimer:     Schemas.Map({ secondsLeft: Schemas.Number, hidersLeft: Schemas.Number }),
   gameResults:      Schemas.Map({ winner: Schemas.String }),  // 'shooters' | 'hiders'
+  leaderboardSnapshot: Schemas.Map({
+    hunters: Schemas.Array(Schemas.Map({
+      address: Schemas.String,
+      displayName: Schemas.String,
+      value: Schemas.Number
+    })),
+    props: Schemas.Array(Schemas.Map({
+      address: Schemas.String,
+      displayName: Schemas.String,
+      value: Schemas.Number
+    }))
+  }),
 })

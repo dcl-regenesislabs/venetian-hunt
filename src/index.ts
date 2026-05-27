@@ -11,9 +11,11 @@ export async function main() {
   }
 
   const { initClient } = await import('./client/setup')
+  const { initLeaderboardWorldPanels } = await import('./client/leaderboardWorldPanels')
   const { setupUi } = await import('./ui')
   const { setupAvatarHiding } = await import('./avatarHiding')
   setupAvatarHiding()
+  initLeaderboardWorldPanels()
   initClient()
   setupUi()
   await import('./client/waterTrigger')
