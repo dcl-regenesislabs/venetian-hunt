@@ -80,7 +80,7 @@
   },
   "authoritativeMultiplayer": true,
   "worldConfiguration": {
-    "name": "carrito.dcl.eth"
+    "name": "venetianhunt.dcl.eth"
   },
   "logsPermissions": [
     "0xYOUR_WALLET_ADDRESS"
